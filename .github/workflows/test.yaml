@@ -1,0 +1,24 @@
+name: Build and Test
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          # Use the central Go version defined in go.mod to make it easier
+          # to perform upgrades.
+          go-version-file: go.mod
+      - name: Vet
+        run: go vet -v -unreachable=false ./...
+      - name: Build
+        run: go build -v ./...
+      - name: Test
+        run: go test ./...
