@@ -88,7 +88,7 @@ The FHIRPath [spec](http://hl7.org/fhirpath/N1/#literals) defines the following 
 - Time
 - DateTime
 
-FHIR Protos get implicitly to the above types according to this
+FHIR Protos get implicitly converted to the above types according to this
 [chart](http://hl7.org/fhir/R4/fhirpath.html#types), when used in some FHIRPath expressions.
 
 ### Things to be aware of
