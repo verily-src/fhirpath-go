@@ -11,7 +11,7 @@ require (
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	github.com/shopspring/decimal v1.4.0
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
-	google.golang.org/protobuf v1.29.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
