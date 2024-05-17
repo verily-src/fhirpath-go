@@ -1,0 +1,71 @@
+# Schema: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+name: Verify Contribution Guidelines
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  MESSAGE: >
+    Thank you for your interest in this project! At this moment, we are not currently accepting community contributions in the form of PRs.
+    If you would like to make a proposal, 
+    we will do our best to review it, implement it ourselves, and include it in the next release. 
+    If enough proposals come through, we will certainly revisit this policy to make the package as useful as possible.
+    [Contribution Guidelines](https://github.com/verily-src/fhirpath-go/CONTRIBUTING.md).
+
+    Thank you! 🙂
+
+jobs:
+  pr-description:
+    name: Check PR Description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR description
+        id: check
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          body="${PR_AUTHOR}"
+          body=$(echo "${body}" | sed -E -e '/OliverCardoza|bitwizeshift|VickSuresh|assefamaru|jonhayesverily|alexlaurinmath|Copybara/!d')
+
+          if [ -z "$body"]; then
+            echo "status=failure" >> "${GITHUB_OUTPUT}"
+          else
+            echo "status=success" >> "${GITHUB_OUTPUT}"
+          fi
+
+      # This stage is used to see whether we want to delete the comment once the
+      # problem has been resolved.
+      - name: Check for existing comment
+        id: comment
+        if: steps.check.outputs.status == 'failure'
+        continue-on-error: true
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          # Check if comment already exists
+          comment_id=$(gh api                                                  \
+              -H "Accept: application/vnd.github+json"                         \
+              -H "X-GitHub-Api-Version: 2022-11-28"                            \
+              "repos/verily-src/verily1/issues/${{ env.PR_NUM }}/comments"     \
+              --jq ".[] | select(.body | contains(\"${{ env.MESSAGE }}\")) | .id")
+
+          echo "id=${comment_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: Post comment
+        env:
+          PR_NUM: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: "@${{ github.event.pull_request.user.login }}"
+        if: steps.check.outputs.status == 'failure' && steps.comment.outputs.id == ''
+        continue-on-error: true
+        run: |
+          gh pr comment "${{ env.PR_URL }}" -b "${{ env.AUTHOR }} ${{ env.MESSAGE }}"
+

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/verily-src/fhirpath-go/internal/slices"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -61,6 +61,24 @@ type stringTestCase[T any] struct {
 	expected  string
 }
 
+var (
+	firstCoding = &dtpb.CodeableConcept{
+		Coding: []*dtpb.Coding{
+			{
+				System: &dtpb.Uri{Value: "test-system"},
+				Code:   &dtpb.Code{Value: "1"},
+			},
+		},
+	}
+	secondCoding = &dtpb.CodeableConcept{
+		Coding: []*dtpb.Coding{
+			{
+				System: &dtpb.Uri{Value: "test-system"},
+				Code:   &dtpb.Code{Value: "2"},
+			},
+		},
+	}
+)
 func TestIsIdentical(t *testing.T) {
 	type s1 []int
 	type s2 []int
@@ -257,8 +275,6 @@ func TestIncludes(t *testing.T) {
 }
 
 func TestIndexOf(t *testing.T) {
-	firstCoding := fhir.CodeableConcept("", fhir.Coding("test-system", "1"))
-	secondCoding := fhir.CodeableConcept("", fhir.Coding("test-system", "2"))
 	firstProto := proto.Message(firstCoding)
 	secondProto := proto.Message(secondCoding)
 	testCases := []indexTestCase[any]{
@@ -568,8 +584,6 @@ func TestIsUnique_SimpleType(t *testing.T) {
 }
 
 func TestIsUnique_Proto(t *testing.T) {
-	firstCoding := fhir.CodeableConcept("", fhir.Coding("test-system", "1"))
-	secondCoding := fhir.CodeableConcept("", fhir.Coding("test-system", "2"))
 	firstProto := proto.Message(firstCoding)
 	secondProto := proto.Message(secondCoding)
 
@@ -630,8 +644,6 @@ func TestUnique_SimpleType(t *testing.T) {
 }
 
 func TestUnique_Proto(t *testing.T) {
-	firstCoding := fhir.CodeableConcept("", fhir.Coding("test-system", "1"))
-	secondCoding := fhir.CodeableConcept("", fhir.Coding("test-system", "2"))
 	firstProto := proto.Message(firstCoding)
 	secondProto := proto.Message(secondCoding)
 
