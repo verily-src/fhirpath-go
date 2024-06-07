@@ -1,5 +1,7 @@
 # FHIRPath
 
+Developed and maintained by the nice folks at [Verily](https://verily.com/).
+
 This package contains a Go implementation of the [FHIRPath][fhirpath] specification, implemented directly with
 the [google/fhir][google-fhir] proto definitions.
 
@@ -60,7 +62,7 @@ customFn := func (input system.Collection, args ...any) (system.Collection error
     fmt.Print("called custom fn")
     return input, nil
 }
-expression, err := fhirpath.Compile("print()", WithFunction("print", customFn))
+expression, err := fhirpath.Compile("print()", compopts.AddFunction("print", customFn))
 ```
 
 #### To add external constants
@@ -72,7 +74,7 @@ The constraints on external constants are as follows:
 
 ```go
 customVar := system.String("custom variable")
-result, err := expression.Evaluate([]fhir.Resource{someResource}, WithConstant("var", customVar))
+result, err := expression.Evaluate([]fhir.Resource{someResource}, evalopts.EnvVariable("var", customVar))
 ```
 
 ### System Types
