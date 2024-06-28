@@ -75,7 +75,12 @@ var baseTable = FunctionTable{
 		1,
 		false,
 	},
-	"select": notImplemented,
+	"select": Function{
+		impl.Select,
+		1,
+		1,
+		false,
+	},
 	"repeat": notImplemented,
 	"ofType": notImplemented,
 	"single": notImplemented,
