@@ -338,6 +338,12 @@ func TestEvaluate_PathSelection_ReturnsResult(t *testing.T) {
 			inputCollection: []fhir.Resource{task},
 			wantCollection:  system.Collection{system.String(fhirconv.DateTimeToString(end.ToProtoDateTime()))},
 		},
+		{
+			name:            "returns full name with select()",
+			inputPath:       "Patient.name.where(use = 'official').select(given.first() + ' ' + family)",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.String("Kang Chu")},
+		},
 	}
 	testEvaluate(t, testCases)
 }
@@ -462,6 +468,12 @@ func TestEvaluate_ThisInvocation_Evaluates(t *testing.T) {
 			inputPath:       "Patient.name.given.where($this = 'Senpai')",
 			inputCollection: []fhir.Resource{patientChu},
 			wantCollection:  system.Collection{dtpb.String{Value: "Senpai"}},
+		},
+		{
+			name:            "projection on given name with select()",
+			inputPath:       "name.given.select($this = 'Kang')",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.Boolean(false), system.Boolean(true)},
 		},
 	}
 
