@@ -352,9 +352,19 @@ var baseTable = FunctionTable{
 		0,
 		false,
 	},
-	"children":    notImplemented,
-	"descendants": notImplemented,
-	"trace":       notImplemented,
+	"children": Function{
+		impl.Children,
+		0,
+		0,
+		false,
+	},
+	"descendants": Function{
+		impl.Descendants,
+		0,
+		0,
+		false,
+	},
+	"trace": notImplemented,
 	"now": Function{
 		impl.Now,
 		0,
