@@ -9,15 +9,16 @@ import (
 	bcrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
 	"github.com/iancoleman/strcase"
 	"github.com/shopspring/decimal"
-	"github.com/verily-src/fhirpath-go/internal/slices"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
-	"github.com/verily-src/fhirpath-go/internal/containedresource"
-	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/containedresource"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"github.com/verily-src/fhirpath-go/internal/protofields"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -101,6 +102,7 @@ func (e *FieldExpression) Evaluate(ctx *Context, input system.Collection) (syste
 			return nil, e.errField(message)
 		}
 
+		message = e.unpackAny(message)
 		// unwrap if a ContainedResource
 		if contained, ok := message.(*bcrpb.ContainedResource); ok {
 			message = containedresource.Unwrap(contained)
@@ -172,7 +174,13 @@ func (e *FieldExpression) Evaluate(ctx *Context, input system.Collection) (syste
 			continue
 		}
 
-		unwrap := e.unwrapOneof
+		unwrap := func(obj protoreflect.ProtoMessage) protoreflect.ProtoMessage {
+			obj = e.unpackAny(obj)
+			if contained, ok := obj.(*bcrpb.ContainedResource); ok {
+				obj = containedresource.Unwrap(contained)
+			}
+			return e.unwrapOneof(obj)
+		}
 		if e.Permissive {
 			unwrap = func(obj proto.Message) proto.Message { return obj }
 		}
@@ -271,6 +279,16 @@ func (e *FieldExpression) unwrapOneof(obj proto.Message) proto.Message {
 	}
 	if msg := message.Get(field).Message(); msg != nil {
 		return msg.Interface()
+	}
+	return obj
+}
+
+func (e *FieldExpression) unpackAny(obj protoreflect.ProtoMessage) protoreflect.ProtoMessage {
+	if anyMsg, ok := obj.(*anypb.Any); ok {
+		cr := &bcrpb.ContainedResource{}
+		if err := anyMsg.UnmarshalTo(cr); err == nil {
+			return cr
+		}
 	}
 	return obj
 }
@@ -396,9 +414,6 @@ func (e *EqualityExpression) Evaluate(ctx *Context, input system.Collection) (sy
 	result, ok := leftResult.TryEqual(rightResult)
 	if !ok {
 		return system.Collection{}, nil
-	}
-	if err != nil {
-		return nil, err
 	}
 	if e.Not {
 		result = !result
