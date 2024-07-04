@@ -118,6 +118,33 @@ func URIString(resource fhir.Resource) string {
 	return fmt.Sprintf("%v/%v", TypeOf(resource), id)
 }
 
+// Profiles is a helper for getting the fhir profiles of a resource in
+// canonical form.
+//
+// If the resource is nil, this will return nil.
+func Profiles(resource fhir.Resource) []*dtpb.Canonical {
+	if resource == nil {
+		return nil
+	}
+	return resource.GetMeta().GetProfile()
+}
+
+// ProfileStrings is a helper for getting the fhir profiles of a resource in
+// string form.
+//
+// If the resource is nil, this will return nil.
+func ProfileStrings(resource fhir.Resource) []string {
+	if resource == nil {
+		return nil
+	}
+	var profiles []string
+	for _, profile := range resource.GetMeta().GetProfile() {
+		profiles = append(profiles, profile.GetValue())
+	}
+
+	return profiles
+}
+
 // VersionedURI is a helper for getting the URI of a resource as a URI object.
 // The URI is returned in the format Type/ID/_history/VERSION.
 //

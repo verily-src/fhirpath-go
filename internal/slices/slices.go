@@ -56,6 +56,21 @@ func Filter[S ~[]T, T any](vals S, comp func(T) bool) S {
 	return matches
 }
 
+// Find evaluates the given condition and returns the first value
+// which meets the condition, as well as a boolean representing
+// whether a value was found. If no element is found that satisfies
+// the condition, the zero value of the slice type is returned along
+// with false to indicate no matching value was found.
+func Find[S ~[]T, T any](vals S, comp func(T) bool) (T, bool) {
+	var zero T
+	for _, val := range vals {
+		if comp(val) {
+			return val, true
+		}
+	}
+	return zero, false
+}
+
 // Count returns the number of elements in a slice that match the given
 // condition.
 func Count[S ~[]T, T any](vals S, comp func(T) bool) int {

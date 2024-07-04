@@ -939,6 +939,18 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			inputCollection: []fhir.Resource{patientChu},
 			wantCollection:  system.Collection{system.String("zzzhu")},
 		},
+		{
+			name:            "returns full name with select()",
+			inputPath:       "Patient.name.where(use = 'official').select(given.first() + ' ' + family)",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.String("Kang Chu")},
+		},
+		{
+			name:            "projection on given name with select()",
+			inputPath:       "name.given.select($this = 'Kang')",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.Boolean(false), system.Boolean(true)},
+		},
 	}
 
 	testEvaluate(t, testCases)

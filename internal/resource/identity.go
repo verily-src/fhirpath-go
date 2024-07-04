@@ -17,6 +17,7 @@ const (
 )
 
 var (
+	urlRegexp        = regexp.MustCompile(fmt.Sprintf("(%s)/(%s)$", resourceTypePattern, resourceIDPattern))
 	historyURLRegexp = regexp.MustCompile(fmt.Sprintf("^.*/(%s)/(%s)/_history/(%s)$", resourceTypePattern, resourceIDPattern, versionIDPattern))
 )
 
@@ -157,11 +158,23 @@ func NewIdentity(resourceType, id, versionID string) (*Identity, error) {
 	}, nil
 }
 
+// NewIdentityFromURL attempts to create a new Identity object from a
+// runtime-provided URL.
+//
+// Input: [FHIR Service Base URL]/[resourceType]/[resourceId] or
+// [resourceType]/[resourceId]
+func NewIdentityFromURL(url string) (*Identity, error) {
+	matches := urlRegexp.FindStringSubmatch(url)
+	if len(matches) != 3 {
+		return nil, fmt.Errorf("error parsing URL: %s", url)
+	}
+	return NewIdentity(matches[1], matches[2], "")
+}
+
 // NewIdentityFromHistoryURL attempts to create a new Identity object from a
 // runtime-provided history URL.
 //
 // Input: [FHIR Proxy/Store URL]/fhir/[resourceType]/[resourceId]/_history/[versionId]
-// Output: [resourceID]
 func NewIdentityFromHistoryURL(url string) (*Identity, error) {
 	matches := historyURLRegexp.FindStringSubmatch(url)
 	if len(matches) != 4 {
