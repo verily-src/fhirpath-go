@@ -75,6 +75,26 @@ func ExampleIncludes() {
 	// arr includes a: true
 }
 
+func ExampleFind() {
+	isEven := func(i int) bool { return i%2 == 0 }
+	arrWithOdd := []int{1, 3, 5, 7}
+	arrWithEven := []int{1, 3, 5, 6, 7}
+
+	resultOdd, foundOdd := slices.Find(arrWithOdd, isEven)
+	fmt.Printf("found odd: %v\n", foundOdd)
+	fmt.Printf("result odd: %v\n", resultOdd)
+
+	resultEven, foundEven := slices.Find(arrWithEven, isEven)
+	fmt.Printf("found even: %v\n", foundEven)
+	fmt.Printf("result even: %v\n", resultEven)
+
+	// Output:
+	// found odd: false
+	// result odd: 0
+	// found even: true
+	// result even: 6
+}
+
 func ExampleIndexOf() {
 	letters := []string{"w", "o", "o", "a", "h"}
 

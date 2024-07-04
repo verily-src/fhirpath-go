@@ -49,6 +49,43 @@ func TestNewIdentity_BadInput_ReturnsErrBadType(t *testing.T) {
 	}
 }
 
+func TestNewIdentityFromURL(t *testing.T) {
+	testCases := []struct {
+		name         string
+		URL          string
+		wantIdentity *resource.Identity
+	}{
+		{
+			"URL",
+			"https://healthcare.googleapis.com/v1/projects/my-project-name/locations/us-east4/datasets/my-dataset-name/fhirStores/my-fhir-store-name/fhir/Binary/123",
+			mustNewIdentity("Binary", "123", ""),
+		},
+		{
+			"URILong",
+			"projects/my-project-name/locations/us-east4/datasets/my-dataset-name/fhirStores/my-fhir-store-name/fhir/Patient/abc",
+			mustNewIdentity("Patient", "abc", ""),
+		},
+		{
+			"URIShort",
+			"Patient/abc",
+			mustNewIdentity("Patient", "abc", ""),
+		},
+		{
+			"Invalid",
+			"ThisIsNotAValidResourceName",
+			nil,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotIdentity, _ := resource.NewIdentityFromURL(tc.URL)
+			if !cmp.Equal(gotIdentity, tc.wantIdentity) {
+				t.Errorf("WithNewIdentityFromURL: got %v, want %v", gotIdentity, tc.wantIdentity)
+			}
+		})
+	}
+}
+
 func TestNewIdentityFromHistoryURL(t *testing.T) {
 	testCases := []struct {
 		name          string

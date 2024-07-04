@@ -27,6 +27,11 @@ func TestVersionETag(t *testing.T) {
 		want string
 	}{
 		{
+			"nil resource",
+			nil,
+			"",
+		},
+		{
 			"failure: VersionId is the empty string",
 			&ppb.Patient{Meta: &dtpb.Meta{VersionId: fhir.ID("")}},
 			"",
@@ -59,6 +64,11 @@ func TestVersionedURI(t *testing.T) {
 		res  fhir.Resource
 		want *dtpb.Uri
 	}{
+		{
+			"nil resource",
+			nil,
+			nil,
+		},
 		{
 			"nil resource",
 			&ppb.Patient{Meta: &dtpb.Meta{VersionId: fhir.ID("")}},
@@ -121,6 +131,102 @@ func TestVersionedURIString(t *testing.T) {
 			}
 			if got != tc.want {
 				t.Errorf("VersionedURIString(%s) got = %v, want = %v", tc.name, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestProfileStrings(t *testing.T) {
+	testCases := []struct {
+		name string
+		res  fhir.Resource
+		want []string
+	}{
+		{
+			"nil resource",
+			nil,
+			nil,
+		},
+		{
+			"nil resource",
+			&ppb.Patient{Meta: &dtpb.Meta{VersionId: fhir.ID("")}},
+			nil,
+		},
+		{
+			"no profiles",
+			&ppb.Patient{Id: fhir.ID("abc")},
+			nil,
+		},
+		{
+			"empty profiles",
+			&dpb.Device{Id: fhir.ID("123"), Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{}}},
+			nil,
+		},
+		{
+			"single profiles",
+			&dpb.Device{Id: fhir.ID("123"), Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{{Value: "profileA"}}}},
+			[]string{"profileA"},
+		},
+		{
+			"multiple profiles",
+			&dpb.Device{Id: fhir.ID("123"), Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{{Value: "profileA"}, {Value: "profileB"}}}},
+			[]string{"profileA", "profileB"},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resource.ProfileStrings(tc.res)
+
+			if diff := cmp.Diff(got, tc.want, protocmp.Transform()); diff != "" {
+				t.Fatalf("ProfileStrings(%s): (-got, +want):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestProfiles(t *testing.T) {
+	testCases := []struct {
+		name string
+		res  fhir.Resource
+		want []*dtpb.Canonical
+	}{
+		{
+			"nil resource",
+			nil,
+			nil,
+		},
+		{
+			"nil resource",
+			&ppb.Patient{Meta: &dtpb.Meta{VersionId: fhir.ID("")}},
+			nil,
+		},
+		{
+			"no profiles",
+			&ppb.Patient{Id: fhir.ID("abc")},
+			nil,
+		},
+		{
+			"empty profiles",
+			&dpb.Device{Id: fhir.ID("123"), Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{}}},
+			[]*dtpb.Canonical{},
+		},
+		{
+			"single profiles",
+			&dpb.Device{Id: fhir.ID("123"), Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{{Value: "profileA"}}}},
+			[]*dtpb.Canonical{{Value: "profileA"}},
+		},
+		{
+			"multiple profiles",
+			&dpb.Device{Id: fhir.ID("123"), Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{{Value: "profileA"}, {Value: "profileB"}}}},
+			[]*dtpb.Canonical{{Value: "profileA"}, {Value: "profileB"}},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resource.Profiles(tc.res)
+
+			if diff := cmp.Diff(got, tc.want, protocmp.Transform()); diff != "" {
+				t.Fatalf("ProfileStrings(%s): (-got, +want):\n%s", tc.name, diff)
 			}
 		})
 	}

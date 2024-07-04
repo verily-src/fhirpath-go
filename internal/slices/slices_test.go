@@ -35,6 +35,14 @@ type includesTestCase[T any] struct {
 	expected bool
 }
 
+type findTestCase[T any] struct {
+	name      string
+	arr       StrongSlice[T]
+	comp      func(T) bool
+	want      any
+	wantFound bool
+}
+
 type indexTestCase[T any] struct {
 	name     string
 	arr      StrongSlice[T]
@@ -79,6 +87,7 @@ var (
 		},
 	}
 )
+
 func TestIsIdentical(t *testing.T) {
 	type s1 []int
 	type s2 []int
@@ -205,6 +214,63 @@ func TestFilter(t *testing.T) {
 				t.Errorf("Filter(%s) mismatch (-want, +got):\n%s", tc.name, diff)
 			}
 		})
+	}
+}
+
+func TestFind(t *testing.T) {
+	isEven := func(i int) bool { return i%2 == 0 }
+
+	testCases := []findTestCase[int]{
+		{
+			"empty slice",
+			[]int{},
+			isEven,
+			0,
+			false,
+		},
+		{
+			"returns match",
+			[]int{5, 16},
+			isEven,
+			16,
+			true,
+		},
+		{
+			"returns first match",
+			[]int{5, 8, 16},
+			isEven,
+			8,
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, found := slices.Find(tc.arr, tc.comp)
+			if found != tc.wantFound {
+				t.Fatalf("Find(%s) found got = %v, want = %v", tc.name, found, tc.wantFound)
+			}
+			got, want := result, tc.want
+			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("Find(%s) mismatch (-want, +got):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestFind_Proto(t *testing.T) {
+	isExtA := func(e *dtpb.Extension) bool { return e.GetUrl().GetValue() == "extA" }
+	extA := &dtpb.Extension{Url: &dtpb.Uri{Value: "extA"}}
+	extB := &dtpb.Extension{Url: &dtpb.Uri{Value: "extB"}}
+	exts := []*dtpb.Extension{extA, extB}
+
+	result, found := slices.Find(exts, isExtA)
+	if !found {
+		t.Fatalf("Find() found got = %v, want = true", found)
+	}
+	got, want := result, extA
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("Find() mismatch (-want, +got):\n%s", diff)
 	}
 }
 
