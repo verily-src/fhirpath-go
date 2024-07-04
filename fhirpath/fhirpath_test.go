@@ -18,15 +18,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/shopspring/decimal"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
-	"github.com/verily-src/fhirpath-go/internal/element/extension"
-	"github.com/verily-src/fhirpath-go/internal/element/reference"
-	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"github.com/verily-src/fhirpath-go/fhirpath"
 	"github.com/verily-src/fhirpath-go/fhirpath/compopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/evalopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/containedresource"
+	"github.com/verily-src/fhirpath-go/internal/element/extension"
+	"github.com/verily-src/fhirpath-go/internal/element/reference"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/internal/fhirconv"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 )
 
 type evaluateTestCase struct {
@@ -152,6 +155,15 @@ var listWithNilRef = &lpb.List{
 	},
 }
 
+func marshalToAny(t *testing.T, pb proto.Message) *anypb.Any {
+	t.Helper()
+	any, err := anypb.New(pb)
+	if err != nil {
+		t.Errorf("failed to marshal %T:%+v to Any", pb, pb)
+	}
+	return any
+}
+
 func testEvaluate(t *testing.T, testCases []evaluateTestCase) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -222,6 +234,10 @@ func TestEvaluate_PathSelection_ReturnsResult(t *testing.T) {
 	}
 	end := system.MustParseDateTime("@2016-01-01T12:22:33Z")
 	task := makeTaskWithEndTime(end)
+	obsWithRef.Contained = []*anypb.Any{
+		marshalToAny(&testing.T{}, containedresource.Wrap(listWithNilRef)),
+	}
+	defer func() { obsWithRef.Contained = nil }()
 
 	testCases := []evaluateTestCase{
 		{
@@ -337,6 +353,29 @@ func TestEvaluate_PathSelection_ReturnsResult(t *testing.T) {
 			inputPath:       "(Task.input.value as DataRequirement).dateFilter[0].value.end.value",
 			inputCollection: []fhir.Resource{task},
 			wantCollection:  system.Collection{system.String(fhirconv.DateTimeToString(end.ToProtoDateTime()))},
+		},
+		{
+			name:            "children on choice field of primitive returns empty",
+			inputPath:       "Patient.deceased.children()",
+			inputCollection: []fhir.Resource{patientVoldemort},
+			wantCollection:  system.Collection{},
+		},
+		{
+			name:            "returns all descendant nodes including contained resource",
+			inputPath:       "Observation.descendants()",
+			inputCollection: []fhir.Resource{obsWithRef},
+			wantCollection: system.Collection{
+				obsWithRef.GetMeta(),
+				listWithNilRef,
+				obsWithRef.GetDerivedFrom()[0],
+				obsWithRef.GetMeta().GetExtension()[0],
+				listWithNilRef.GetEntry()[0],
+				fhir.String("Questionnaire/1234"),
+				obsWithRef.GetMeta().GetExtension()[0].GetUrl(),
+				obsWithRef.GetMeta().GetExtension()[0].GetValue().GetReference(),
+				listWithNilRef.GetEntry()[0].GetItem(),
+				fhir.String("Questionnaire/1234"),
+			},
 		},
 	}
 	testEvaluate(t, testCases)
