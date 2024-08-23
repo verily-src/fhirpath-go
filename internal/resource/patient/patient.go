@@ -15,6 +15,7 @@ import (
 	cerpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/coverage_eligibility_request_go_proto"
 	dpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_go_proto"
 	drpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_request_go_proto"
+	dorpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/document_reference_go_proto"
 	epb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/encounter_go_proto"
 	erpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/enrollment_request_go_proto"
 	eobpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/explanation_of_benefit_go_proto"
@@ -33,6 +34,7 @@ import (
 	srpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/service_request_go_proto"
 	surpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/supply_request_go_proto"
 	tpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/task_go_proto"
+	vrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/verification_result_go_proto"
 	vppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/vision_prescription_go_proto"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/resource"
@@ -76,6 +78,19 @@ func IDFromResource(res fhir.Resource) (string, error) {
 		return idOrError(res.GetPatient())
 	case *lpb.List:
 		return idOrError(res.GetSubject())
+	case *dorpb.DocumentReference:
+		return idOrError(res.GetSubject())
+	case *vrpb.VerificationResult:
+		// VerificationResult may contain patientID in the target field, which
+		// supports multiple references of any type.
+		// This means there may be multiple patient IDs. We assume only 1 patient
+		// by searching for and returning the first patient we discover.
+		for _, target := range res.GetTarget() {
+			if id := target.GetPatientId().GetValue(); id != "" {
+				return id, nil
+			}
+		}
+		return "", fmt.Errorf("%w from %T", ErrExtractingPatientID, res)
 
 	//---------------------------------------------------------------------------
 	// Event Pattern Resources

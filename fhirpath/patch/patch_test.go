@@ -789,21 +789,258 @@ func TestMove(t *testing.T) {
 }
 
 func TestReplace(t *testing.T) {
+	patientRef1, _ := reference.Typed("Patient", "123")
+	patientRef2, _ := reference.Typed("Patient", "456")
+
 	testCases := []struct {
 		name    string
 		res     fhir.Resource
 		path    string
-		value   any
+		value   fhir.Base
 		wantRes fhir.Resource
-		wantErr error
 	}{
 		{
-			"replaces birthDate",
+			"Replaces scalar field",
 			patientWithBirthDate,
 			"Patient.birthDate",
-			"2007-07-05",
-			nil,
-			patch.ErrNotImplemented,
+			fhir.MustParseDate("2007-07-05"),
+			&ppb.Patient{
+				BirthDate: fhir.MustParseDate("2007-07-05"),
+			},
+		},
+		{
+			"Replaces scalar field with reserved name",
+			&epb.Encounter{
+				ClassValue: fhir.Coding("system_0", "code_0"),
+			},
+			"Encounter.class",
+			fhir.Coding("system_1", "code_1"),
+			&epb.Encounter{
+				ClassValue: fhir.Coding("system_1", "code_1"),
+			},
+		},
+		{
+			"Replaces non-enum string field",
+			&ppb.Patient{
+				MaritalStatus: fhir.CodeableConcept("H0H0H0"),
+			},
+			"Patient.maritalStatus.text",
+			fhir.String("H1H1H1"),
+			&ppb.Patient{
+				MaritalStatus: fhir.CodeableConcept("H1H1H1"),
+			},
+		},
+		{
+			"Replaces enum field",
+			&ppb.Patient{
+				Gender: &ppb.Patient_GenderCode{
+					Value: cpb.AdministrativeGenderCode_MALE,
+				},
+			},
+			"Patient.gender",
+			fhir.String("female"),
+			&ppb.Patient{
+				Gender: &ppb.Patient_GenderCode{
+					Value: cpb.AdministrativeGenderCode_FEMALE,
+				},
+			},
+		},
+		{
+			"Replaces valid integer to positiveInt field",
+			&ppb.Patient{
+				Telecom: []*dtpb.ContactPoint{
+					{
+						Rank: fhir.PositiveInt(1),
+					},
+				},
+			},
+			"Patient.telecom[0].rank",
+			fhir.Integer(2),
+			&ppb.Patient{
+				Telecom: []*dtpb.ContactPoint{
+					{
+						Rank: fhir.PositiveInt(2),
+					},
+				},
+			},
+		},
+		{
+			"Replaces extension field",
+			&ppb.Patient{
+				Extension: []*dtpb.Extension{
+					extension.New("url_0", fhir.String("value_0")),
+				},
+			},
+			"Patient.extension[0]",
+			extension.New("url_1", fhir.String("value_1")),
+			&ppb.Patient{
+				Extension: []*dtpb.Extension{
+					extension.New("url_1", fhir.String("value_1")),
+				},
+			},
+		},
+		{
+			"Replaces reference field",
+			&opb.Observation{
+				Subject: patientRef1,
+			},
+			"Observation.subject",
+			patientRef2,
+			&opb.Observation{
+				Subject: patientRef2,
+			},
+		},
+		{
+			"Replaces id in reference field",
+			&opb.Observation{
+				Subject: patientRef1,
+			},
+			"Observation.subject.patientId",
+			fhir.String("456"),
+			&opb.Observation{
+				Subject: patientRef2,
+			},
+		},
+		{
+			"Replaces extension oneof field",
+			&ppb.Patient{
+				Extension: []*dtpb.Extension{
+					{
+						Value: &dtpb.Extension_ValueX{
+							Choice: &dtpb.Extension_ValueX_StringValue{
+								StringValue: fhir.String("hello world"),
+							},
+						},
+					},
+				},
+			},
+			"Patient.extension[0].value",
+			fhir.String("goodbye world"),
+			&ppb.Patient{
+				Extension: []*dtpb.Extension{
+					{
+						Value: &dtpb.Extension_ValueX{
+							Choice: &dtpb.Extension_ValueX_StringValue{
+								StringValue: fhir.String("goodbye world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Replaces extension oneof field with a different type",
+			&ppb.Patient{
+				Extension: []*dtpb.Extension{
+					{
+						Value: &dtpb.Extension_ValueX{
+							Choice: &dtpb.Extension_ValueX_StringValue{
+								StringValue: fhir.String("hello world"),
+							},
+						},
+					},
+				},
+			},
+			"Patient.extension[0].value",
+			fhir.Integer(42),
+			&ppb.Patient{
+				Extension: []*dtpb.Extension{
+					{
+						Value: &dtpb.Extension_ValueX{
+							Choice: &dtpb.Extension_ValueX_Integer{
+								Integer: fhir.Integer(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			"Replaces contained resource oneof field",
+			&bcrpb.Bundle{
+				Entry: []*bcrpb.Bundle_Entry{
+					{
+						Resource: containedresource.Wrap(&ppb.Patient{}),
+					},
+				},
+			},
+			"Bundle.entry[0].resource",
+			&ppb.Patient{
+				BirthDate: fhir.MustParseDate("1993-05-16"),
+			},
+			&bcrpb.Bundle{
+				Entry: []*bcrpb.Bundle_Entry{
+					{
+						Resource: containedresource.Wrap(&ppb.Patient{
+							BirthDate: fhir.MustParseDate("1993-05-16"),
+						}),
+					},
+				},
+			},
+		},
+		{
+			"Replaces bundle entry",
+			&bcrpb.Bundle{
+				Entry: []*bcrpb.Bundle_Entry{
+					{
+						Resource: containedresource.Wrap(&ppb.Patient{
+							BirthDate: fhir.MustParseDate("2000-05-16"),
+						}),
+					},
+				},
+			},
+			"Bundle.entry[0]",
+			&bcrpb.Bundle_Entry{
+				Resource: containedresource.Wrap(&ppb.Patient{
+					BirthDate: fhir.MustParseDate("1993-05-16"),
+				}),
+			},
+			&bcrpb.Bundle{
+				Entry: []*bcrpb.Bundle_Entry{
+					{
+						Resource: containedresource.Wrap(&ppb.Patient{
+							BirthDate: fhir.MustParseDate("1993-05-16"),
+						}),
+					},
+				},
+			},
+		},
+		{
+			"Replaces start field of RequestGroup extension period",
+			&rgpb.RequestGroup{
+				Extension: []*dtpb.Extension{
+					{},
+					{
+						Url: fhir.URI("123"),
+						Value: &dtpb.Extension_ValueX{
+							Choice: &dtpb.Extension_ValueX_Period{
+								Period: &dtpb.Period{
+									Start: fhir.MustParseDateTime("2006-01-02T15:04:05Z"),
+								},
+							},
+						},
+					},
+					{},
+				},
+			},
+			"RequestGroup.extension.where(url='123').value.start",
+			fhir.MustParseDateTime("2007-01-02T15:04:05Z"),
+			&rgpb.RequestGroup{
+				Extension: []*dtpb.Extension{
+					{},
+					{
+						Url: fhir.URI("123"),
+						Value: &dtpb.Extension_ValueX{
+							Choice: &dtpb.Extension_ValueX_Period{
+								Period: &dtpb.Period{
+									Start: fhir.MustParseDateTime("2007-01-02T15:04:05Z"),
+								},
+							},
+						},
+					},
+					{},
+				},
+			},
 		},
 	}
 
@@ -811,13 +1048,121 @@ func TestReplace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := patch.Replace(tc.res, tc.path, tc.value)
 
-			if got, want := err, tc.wantErr; !errors.Is(got, want) {
-				t.Fatalf("Replace(%s): error got = %v, want = %v", tc.name, got, want)
+			if err != nil {
+				t.Fatalf("Replace(%s): got unexpected err = %v", tc.name, err)
 			}
 
-			got, want := fhir.Resource(nil), tc.wantRes
+			got, want := tc.res, tc.wantRes
 			if diff := cmp.Diff(got, want, protocmp.Transform()); diff != "" {
 				t.Errorf("Replace(%s): (-got +want):\n%v", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestReplace_InvalidCondition_ReturnsError(t *testing.T) {
+	testCases := []struct {
+		name    string
+		res     fhir.Resource
+		path    string
+		value   fhir.Base
+		wantErr error
+	}{
+		{
+			name:    "Nil input",
+			res:     nil,
+			path:    "Patient.birthDate",
+			value:   fhir.MustParseDate("2007-07-05"),
+			wantErr: patch.ErrInvalidInput,
+		},
+		{
+			name:    "Evaluation fails",
+			res:     &ppb.Patient{},
+			path:    "Patient.no_exist",
+			value:   fhir.MustParseDate("2007-07-05"),
+			wantErr: fhirpath.ErrInvalidField,
+		},
+		{
+			name: "No singleton result",
+			res: &ppb.Patient{
+				Name: []*dtpb.HumanName{
+					{},
+					{},
+				},
+			},
+			path:    "Patient.name",
+			value:   fhir.String("Steph"),
+			wantErr: patch.ErrNotSingleton,
+		},
+		{
+			name: "enum value with bad casing",
+			res: &ppb.Patient{
+				Gender: &ppb.Patient_GenderCode{
+					Value: cpb.AdministrativeGenderCode_FEMALE,
+				},
+			},
+			path:    "Patient.gender",
+			value:   fhir.String("MALE"),
+			wantErr: patch.ErrInvalidEnum,
+		},
+		{
+			name: "Invalid enum value",
+			res: &ppb.Patient{
+				Gender: &ppb.Patient_GenderCode{
+					Value: cpb.AdministrativeGenderCode_FEMALE,
+				},
+			},
+			path:    "Patient.gender",
+			value:   fhir.String("not a gender"),
+			wantErr: patch.ErrInvalidEnum,
+		},
+		{
+			name: "Invalid int for positiveInt field",
+			res: &ppb.Patient{
+				Telecom: []*dtpb.ContactPoint{
+					{
+						Rank: fhir.PositiveInt(1),
+					},
+				},
+			},
+			path:    "Patient.telecom[0].rank",
+			value:   fhir.Integer(-1),
+			wantErr: patch.ErrInvalidUnsignedInt,
+		},
+		{
+			name: "wrong input type",
+			res: &ppb.Patient{
+				Telecom: []*dtpb.ContactPoint{
+					{
+						Rank: fhir.PositiveInt(1),
+					},
+				},
+			},
+			path:    "Patient.telecom[0].rank",
+			value:   fhir.String("1"),
+			wantErr: patch.ErrInvalidInput,
+		},
+		{
+			name: "Invalid oneof entry",
+			res: &bcrpb.Bundle{
+				Entry: []*bcrpb.Bundle_Entry{
+					{
+						Resource: containedresource.Wrap(&ppb.Patient{}),
+					},
+				},
+			},
+			path:    "Bundle.entry[0].resource",
+			value:   fhir.String("I am not a resource"),
+			wantErr: patch.ErrInvalidInput,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := patch.Replace(tc.res, tc.path, tc.value)
+
+			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
+				t.Fatalf("Add(%s): got err '%v', want err '%v'", tc.name, got, want)
 			}
 		})
 	}

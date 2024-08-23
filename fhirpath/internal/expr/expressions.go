@@ -18,6 +18,7 @@ import (
 	"github.com/verily-src/fhirpath-go/internal/protofields"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -101,6 +102,10 @@ func (e *FieldExpression) Evaluate(ctx *Context, input system.Collection) (syste
 			return nil, e.errField(message)
 		}
 
+		message, err := e.unpackAny(message)
+		if err != nil {
+			return nil, err
+		}
 		// unwrap if a ContainedResource
 		if contained, ok := message.(*bcrpb.ContainedResource); ok {
 			message = containedresource.Unwrap(contained)
@@ -172,9 +177,18 @@ func (e *FieldExpression) Evaluate(ctx *Context, input system.Collection) (syste
 			continue
 		}
 
-		unwrap := e.unwrapOneof
+		unwrap := func(obj protoreflect.ProtoMessage) (protoreflect.ProtoMessage, error) {
+			obj, err := e.unpackAny(obj)
+			if err != nil {
+				return nil, err
+			}
+			if contained, ok := obj.(*bcrpb.ContainedResource); ok {
+				obj = containedresource.Unwrap(contained)
+			}
+			return e.unwrapOneof(obj), nil
+		}
 		if e.Permissive {
-			unwrap = func(obj proto.Message) proto.Message { return obj }
+			unwrap = func(obj proto.Message) (proto.Message, error) { return obj, nil }
 		}
 
 		if !field.IsList() {
@@ -182,13 +196,21 @@ func (e *FieldExpression) Evaluate(ctx *Context, input system.Collection) (syste
 			if !message.IsValid() {
 				continue
 			}
-			output = append(output, unwrap(message.Interface()))
+			unwrapped, err := unwrap(message.Interface())
+			if err != nil {
+				return nil, err
+			}
+			output = append(output, unwrapped)
 			continue
 		}
 		content := reflect.Get(field).List()
 		for i := 0; i < content.Len(); i++ { // flatten out list
 			result := content.Get(i).Message().Interface()
-			output = append(output, unwrap(result))
+			unwrapped, err := unwrap(result)
+			if err != nil {
+				return nil, err
+			}
+			output = append(output, unwrapped)
 		}
 	}
 	return output, nil
@@ -273,6 +295,18 @@ func (e *FieldExpression) unwrapOneof(obj proto.Message) proto.Message {
 		return msg.Interface()
 	}
 	return obj
+}
+
+func (e *FieldExpression) unpackAny(obj protoreflect.ProtoMessage) (protoreflect.ProtoMessage, error) {
+	if anyMsg, ok := obj.(*anypb.Any); ok {
+		cr := &bcrpb.ContainedResource{}
+		err := anyMsg.UnmarshalTo(cr)
+		if err != nil {
+			return nil, err
+		}
+		return cr, nil
+	}
+	return obj, nil
 }
 
 var _ Expression = (*FieldExpression)(nil)
@@ -396,9 +430,6 @@ func (e *EqualityExpression) Evaluate(ctx *Context, input system.Collection) (sy
 	result, ok := leftResult.TryEqual(rightResult)
 	if !ok {
 		return system.Collection{}, nil
-	}
-	if err != nil {
-		return nil, err
 	}
 	if e.Not {
 		result = !result

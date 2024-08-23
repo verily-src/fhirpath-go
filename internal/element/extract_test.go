@@ -11,6 +11,7 @@ import (
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	acpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/account_go_proto"
 	appb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/appointment_go_proto"
+	docpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/document_reference_go_proto"
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -111,6 +112,28 @@ func Test_ExtractAll_OfReference_ValuesCorrect(t *testing.T) {
 				t.Errorf("ExtractAllElementWithPath(%s): got '%v', want '%v'", testCase.name, gotRefsWithPath, wantRefsWithPath)
 			}
 		})
+	}
+}
+
+func Test_ExtractAll_OfAttachment_ValuesCorrect(t *testing.T) {
+	attachment := &dtpb.Attachment{
+		Url: fhir.URL("apple"),
+	}
+	docRefContent := []*docpb.DocumentReference_Content{{Attachment: attachment}}
+
+	resource := fhirtest.NewResource(t, "DocumentReference", fhirtest.WithResourceModification(func(doc *docpb.DocumentReference) {
+		doc.Content = docRefContent
+	}))
+	gotAttsWithPath, err := element.ExtractAllWithPath[*dtpb.Attachment](resource)
+	if err != nil {
+		t.Errorf("ExtractAllElementWithPath: got error %v", err)
+	}
+
+	wantAtts := []*dtpb.Attachment{attachment}
+	wantPaths := []string{"DocumentReference.content[0].attachment"}
+	wantAttsWithPath := zipElementsAndPaths(wantAtts, wantPaths)
+	if !cmp.Equal(gotAttsWithPath, wantAttsWithPath, protocmp.Transform(), cmpopts.EquateEmpty()) {
+		t.Errorf("ExtractAllElementWithPath: got '%v', want '%v'", gotAttsWithPath, wantAttsWithPath)
 	}
 }
 
