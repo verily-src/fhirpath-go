@@ -3,6 +3,7 @@ package patch
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	"github.com/iancoleman/strcase"
@@ -444,12 +445,12 @@ func (e *Expression) getFieldForCollection(root proto.Message, collection system
 				list := value.List()
 				for i := 0; i < list.Len(); i++ {
 					entry := list.Get(i).Message().Interface()
-					if entry == msg {
+					if e.unwrapOneof(entry) == msg {
 						return field, i, true
 					}
 				}
 			} else if field.Kind() == protoreflect.MessageKind {
-				if value.Message().Interface() == msg {
+				if e.unwrapOneof(value.Message().Interface()) == msg {
 					return field, -1, true
 				}
 			} else {
@@ -470,8 +471,132 @@ func (e *Expression) Move(resource fhir.Resource, sourceIndex, destIndex int, op
 // Replace replaces the original value of the expression with the provided value.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func (e *Expression) Replace(resource fhir.Resource, value any, options ...fhirpath.EvaluateOption) error {
-	return ErrNotImplemented
+func (e *Expression) Replace(resource fhir.Resource, value fhir.Base, options ...fhirpath.EvaluateOption) error {
+	if resource == nil {
+		return fmt.Errorf("%w: nil input resource", ErrInvalidInput)
+	}
+	ctx, evalResult, err := e.evaluate(resource, options...)
+	if err != nil {
+		return err
+	}
+	toReplace, err := evalResult.ToSingleton()
+	if err != nil {
+		return fmt.Errorf("%w: fhirpatch replace requires singleton collection", ErrNotSingleton)
+	}
+
+	if err := e.tryReplace(ctx.LastResult, toReplace, value); err != nil {
+		if err := e.tryReplace(ctx.BeforeLastResult, toReplace, value); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// tryReplace attempts to first find the field that contains the element to replace, then replace it
+// with the provided value.
+func (e *Expression) tryReplace(collection system.Collection, toReplace any, value fhir.Base) error {
+	ref, field, idx, err := e.getRefAndFieldForCollection(collection, toReplace)
+	if err != nil {
+		return err
+	}
+
+	var valueMessage protoreflect.Message
+	var update func(m protoreflect.ProtoMessage)
+	if field.IsList() {
+		list := ref.Get(field).List()
+		newlist := ref.NewField(field).List()
+		valueMessage = newlist.NewElement().Message()
+		update = func(m protoreflect.ProtoMessage) {
+			for i := 0; i < list.Len(); i++ {
+				if i == idx {
+					newlist.Append(protoreflect.ValueOfMessage(m.ProtoReflect()))
+				} else {
+					newlist.Append(list.Get(i))
+				}
+			}
+			ref.Set(field, protoreflect.ValueOfList(newlist))
+		}
+	} else {
+		valueMessage = ref.Get(field).Message()
+		update = func(m protoreflect.ProtoMessage) {
+			ref.Set(field, protoreflect.ValueOfMessage(m.ProtoReflect()))
+		}
+	}
+
+	// Special handling for oneof fields, like "Extension", "ContainedResource", etc.
+	if e.isSingletonOneof(valueMessage.Interface()) {
+		container := e.newSetOneof(valueMessage, value)
+		if container == nil {
+			return fmt.Errorf(
+				"%w: '%v' value provided for field '%v' (which is of type '%v')",
+				ErrInvalidInput,
+				value.ProtoReflect().Descriptor().Name(),
+				e.path,
+				valueMessage.Descriptor().Name(),
+			)
+		}
+		update(container.Interface())
+	} else {
+		// Normalize data being patched
+		value, err := e.normalizeAdd(valueMessage, value)
+		if err != nil {
+			return err
+		}
+
+		if valueMessage.Descriptor() != value.ProtoReflect().Descriptor() {
+			return fmt.Errorf(
+				"%w: '%v' value provided for field '%v' (which is of type '%v')",
+				ErrInvalidInput,
+				value.ProtoReflect().Descriptor().Name(),
+				e.path,
+				valueMessage.Descriptor().Name(),
+			)
+		}
+		update(value)
+	}
+	return nil
+}
+
+func (e *Expression) getRefAndFieldForCollection(collection system.Collection, toReplace any) (protoreflect.Message, protoreflect.FieldDescriptor, int, error) {
+	for _, entry := range collection {
+		var ok bool
+		root, ok := entry.(proto.Message)
+		if !ok {
+			continue
+		}
+
+		field, idx, ok := e.getFieldForCollection(root, system.Collection{toReplace})
+		if ok {
+			ref := root.ProtoReflect()
+			return ref, field, idx, nil
+		}
+	}
+
+	return nil, nil, -1, fmt.Errorf("%w: field cannot be replaced", ErrNotPatchable)
+}
+
+// TODO(PHP-29745): make this a common function
+func (e *Expression) unwrapOneof(obj proto.Message) proto.Message {
+	message := obj.ProtoReflect()
+	descriptor := message.Descriptor()
+	if name := string(descriptor.Name()); !(strings.HasSuffix(name, "ValueX") || name == "ContainedResource") {
+		return obj
+	}
+	oneofsNum := descriptor.Oneofs().Len()
+	if oneofsNum != 1 {
+		return obj
+	}
+
+	oneof := descriptor.Oneofs().Get(0)
+	field := message.WhichOneof(oneof)
+	if oneof == nil || field == nil {
+		return obj
+	}
+	if msg := message.Get(field).Message(); msg != nil {
+		return msg.Interface()
+	}
+	return obj
 }
 
 // Add appends a value to the element identified in the path, using the name specified.
@@ -524,7 +649,7 @@ func Move(resource fhir.Resource, path string, sourceIndex, destIndex int, optio
 // Replace replaces the original value at the specified path with the provided value.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func Replace(resource fhir.Resource, path string, value any, options ...opts.CompileOption) error {
+func Replace(resource fhir.Resource, path string, value fhir.Base, options ...opts.CompileOption) error {
 	expr, err := Compile(path, options...)
 	if err != nil {
 		return err

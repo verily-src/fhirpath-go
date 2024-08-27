@@ -32,6 +32,7 @@ import (
 	srpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/service_request_go_proto"
 	surpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/supply_request_go_proto"
 	tpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/task_go_proto"
+	vrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/verification_result_go_proto"
 	vppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/vision_prescription_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -89,6 +90,8 @@ func TestIDFromResource(t *testing.T) {
 		fail("research subject", &rspb.ResearchSubject{}),
 		pass("related person", &rppb.RelatedPerson{Patient: mockPatientRef}),
 		fail("related person", &rppb.RelatedPerson{}),
+		pass("verification result", &vrpb.VerificationResult{Target: []*dtpb.Reference{mockPatientRef}}),
+		fail("verification result", &vrpb.VerificationResult{}),
 
 		// Event Patterns
 		pass("questionnaire response", &qrpb.QuestionnaireResponse{Subject: mockPatientRef}),
