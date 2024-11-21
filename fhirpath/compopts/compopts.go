@@ -9,6 +9,7 @@ package compopts
 import (
 	"errors"
 
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/opts"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/parser"
 )
@@ -50,6 +51,15 @@ func Transform(v parser.VisitorTransform) opts.CompileOption {
 func Permissive() opts.CompileOption {
 	return opts.Transform(func(cfg *opts.CompileConfig) error {
 		cfg.Permissive = true
+		return nil
+	})
+}
+
+// WithExperimentalFuncs is an option that enables experimental functions not
+// in the N1 Normative specification.
+func WithExperimentalFuncs() opts.CompileOption {
+	return opts.Transform(func(cfg *opts.CompileConfig) error {
+		cfg.Table = funcs.AddExperimentalFuncs(cfg.Table)
 		return nil
 	})
 }

@@ -15,12 +15,14 @@ import (
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/verily-src/fhirpath-go/internal/slices"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/bundle"
 	"github.com/verily-src/fhirpath-go/internal/element"
 	"github.com/verily-src/fhirpath-go/internal/element/extension"
+	"github.com/verily-src/fhirpath-go/internal/element/reference"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/fhirtest"
+	"github.com/verily-src/fhirpath-go/internal/resource"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -134,6 +136,32 @@ func Test_ExtractAll_OfAttachment_ValuesCorrect(t *testing.T) {
 	wantAttsWithPath := zipElementsAndPaths(wantAtts, wantPaths)
 	if !cmp.Equal(gotAttsWithPath, wantAttsWithPath, protocmp.Transform(), cmpopts.EquateEmpty()) {
 		t.Errorf("ExtractAllElementWithPath: got '%v', want '%v'", gotAttsWithPath, wantAttsWithPath)
+	}
+}
+
+func Test_ExtractAll_OfAttachmentExtension_ValuesCorrect(t *testing.T) {
+	binaryRes, _ := reference.Typed(resource.Binary, "banana")
+
+	attachment := &dtpb.Attachment{
+		Url: fhir.URL("apple"),
+		Extension: []*dtpb.Extension{
+			extension.New("verily-attachment-reference", binaryRes),
+		},
+	}
+	docRefContent := []*docpb.DocumentReference_Content{{Attachment: attachment}}
+
+	resource := fhirtest.NewResource(t, "DocumentReference", fhirtest.WithResourceModification(func(doc *docpb.DocumentReference) {
+		doc.Content = docRefContent
+	}))
+	gotAttsWithPath, err := element.ExtractAllWithPath[*dtpb.Reference](resource)
+	if err != nil {
+		t.Errorf("ExtractAllElementWithPath: got error %v", err)
+	}
+
+	gotPath := gotAttsWithPath[0].FHIRPath
+	wantPath := "DocumentReference.content[0].attachment.extension[0].valueReference"
+	if !cmp.Equal(gotPath, wantPath, protocmp.Transform(), cmpopts.EquateEmpty()) {
+		t.Errorf("ExtractWithPath: got '%v', want '%v'", gotPath, wantPath)
 	}
 }
 

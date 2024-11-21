@@ -5,9 +5,9 @@ for forming resource-options in resource packages.
 package resourceopt
 
 import (
-	"github.com/verily-src/fhirpath-go/internal/slices"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/protofields"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 	"google.golang.org/protobuf/proto"
 )
 

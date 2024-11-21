@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/opts"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 )
 
 var (

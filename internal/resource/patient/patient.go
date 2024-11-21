@@ -12,13 +12,16 @@ import (
 	commpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/communication_go_proto"
 	crpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/communication_request_go_proto"
 	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/condition_go_proto"
+	conpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/consent_go_proto"
 	cerpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/coverage_eligibility_request_go_proto"
 	dpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_go_proto"
 	drpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_request_go_proto"
 	dorpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/document_reference_go_proto"
 	epb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/encounter_go_proto"
 	erpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/enrollment_request_go_proto"
+	eocpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/episode_of_care_go_proto"
 	eobpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/explanation_of_benefit_go_proto"
+	gpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/goal_go_proto"
 	irpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/immunization_recommendation_go_proto"
 	lpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/list_go_proto"
 	mrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/medication_request_go_proto"
@@ -66,12 +69,18 @@ func IDFromResource(res fhir.Resource) (string, error) {
 			return id, nil
 		}
 		return "", fmt.Errorf("%w from %T", ErrExtractingPatientID, res)
+	case *conpb.Consent:
+		return idOrError(res.GetPatient())
 	case *epb.Encounter:
 		return idOrError(res.GetSubject())
+	case *eocpb.EpisodeOfCare:
+		return idOrError(res.GetPatient())
 	case *dpb.Device:
 		return idOrError(res.GetPatient())
 	case *eobpb.ExplanationOfBenefit:
 		return idOrError(res.GetPatient())
+	case *gpb.Goal:
+		return idOrError(res.GetSubject())
 	case *rspb.ResearchSubject:
 		return idOrError(res.GetIndividual())
 	case *rppb.RelatedPerson:

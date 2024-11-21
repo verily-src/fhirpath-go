@@ -5,6 +5,8 @@ import "github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
 // BaseTable holds the default mapping of all
 // FHIRPath functions. Unimplemented functions return an
 // unimplemented error.
+// This table is a part of the N1 normative spec.
+// See https://hl7.org/fhirpath/N1/
 var baseTable = FunctionTable{
 	"empty": Function{
 		impl.Empty,
@@ -24,7 +26,12 @@ var baseTable = FunctionTable{
 		1,
 		false,
 	},
-	"all": notImplemented,
+	"all": Function{
+		impl.All,
+		1,
+		1,
+		false,
+	},
 	"allTrue": Function{
 		impl.AllTrue,
 		0,
@@ -396,11 +403,37 @@ var baseTable = FunctionTable{
 	},
 }
 
+// ExperimentalTable holds the mapping of all
+// experimental FHIRPath functions. These functions
+// are not a part of the N1 normative spec.
+// See https://build.fhir.org/ig/HL7/FHIRPath/
+var experimentalTable = FunctionTable{
+	"join": Function{
+		impl.Join,
+		0,
+		1,
+		false,
+	},
+}
+
 // Clone returns a deep copy of the base
 // function table.
 func Clone() FunctionTable {
 	table := make(FunctionTable) // TODO: Optimize (PHP-6173)
 	for k, v := range baseTable {
+		table[k] = v
+	}
+	return table
+}
+
+// AddExperimentalFuncs adds experimental functions
+// to the given function table and returns it.
+// If a function already exists in the table, it is not overridden.
+func AddExperimentalFuncs(table FunctionTable) FunctionTable {
+	for k, v := range experimentalTable {
+		if _, exists := table[k]; exists {
+			continue
+		}
 		table[k] = v
 	}
 	return table

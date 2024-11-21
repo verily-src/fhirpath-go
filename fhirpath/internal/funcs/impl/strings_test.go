@@ -7,6 +7,7 @@ import (
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 )
 
 func TestStartsWith(t *testing.T) {
@@ -1142,6 +1143,106 @@ func TestReplaceMatches(t *testing.T) {
 			}
 			if !cmp.Equal(tc.want, got) {
 				t.Errorf("ReplaceMatches returned unexpected result: got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestJoin(t *testing.T) {
+	fullString1 := system.String("Spider")
+	fullString2 := system.String("Man")
+	fhirString := fhir.String("Gwen")
+	fullInteger := system.Integer(123)
+
+	testCases := []struct {
+		name    string
+		input   system.Collection
+		args    []expr.Expression
+		want    system.Collection
+		wantErr bool
+	}{
+		{
+			name:  "returns empty for empty input",
+			input: system.Collection{},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String("")},
+			},
+			want:    system.Collection{},
+			wantErr: false,
+		},
+		{
+			name:  "returns string for single input",
+			input: system.Collection{fullString1},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want:    system.Collection{fullString1},
+			wantErr: false,
+		},
+		{
+			name:  "returns string for two input",
+			input: system.Collection{fullString1, fullString2},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String("-")},
+			},
+			want:    system.Collection{system.String("Spider-Man")},
+			wantErr: false,
+		},
+		{
+			name:    "returns string for two input and no arg",
+			input:   system.Collection{fullString1, fullString2},
+			args:    []expr.Expression{},
+			want:    system.Collection{system.String("SpiderMan")},
+			wantErr: false,
+		},
+		{
+			name:  "returns string for input system and fhir strings",
+			input: system.Collection{fullString1, fhirString},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String("-")},
+			},
+			want:    system.Collection{system.String("Spider-Gwen")},
+			wantErr: false,
+		},
+		{
+			name:  "errors if args length is greater than 1",
+			input: system.Collection{fullString1, fullString2},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+				&expr.LiteralExpression{Literal: system.String("-")},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:  "errors if input is not a string",
+			input: system.Collection{fullString1, fullInteger},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:  "errors if args is not a string",
+			input: system.Collection{fullString1, fullString2},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.Integer(123)},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := impl.Join(&expr.Context{}, tc.input, tc.args...)
+
+			if gotErr := err != nil; tc.wantErr != gotErr {
+				t.Fatalf("Join got unexpected error result: gotErr %v, wantErr %v, err: %v", gotErr, tc.wantErr, err)
+			}
+			if !cmp.Equal(tc.want, got) {
+				t.Errorf("Join returned unexpected result: got %v, want %v", got, tc.want)
 			}
 		})
 	}
