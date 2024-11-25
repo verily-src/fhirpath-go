@@ -3,8 +3,8 @@ package impl_test
 import (
 	"testing"
 
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr/exprtest"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 
 	"google.golang.org/protobuf/testing/protocmp"
 

@@ -6,12 +6,13 @@ import (
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	"github.com/google/go-cmp/cmp"
-	"github.com/verily-src/fhirpath-go/internal/slices"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr/exprtest"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -246,6 +247,178 @@ func TestAnyFalse(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("AnyFalse() returned unexpected diff (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAll(t *testing.T) {
+	testCases := []struct {
+		name            string
+		inputCollection system.Collection
+		inputArgs       []expr.Expression
+		wantCollection  system.Collection
+		wantErr         bool
+		wantErrMsg      string
+	}{
+		{
+			name:            "returns true if input is empty",
+			inputCollection: system.Collection{},
+			inputArgs:       []expr.Expression{exprtest.Return(system.Boolean(true))},
+			wantCollection:  system.Collection{system.Boolean(true)},
+			wantErr:         false,
+		},
+		{
+			name: "returns false if expression returns false",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3)},
+			inputArgs:      []expr.Expression{exprtest.Return(system.Boolean(false))},
+			wantCollection: system.Collection{system.Boolean(false)},
+			wantErr:        false,
+		},
+		{
+			name: "returns true if expression returns true",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3)},
+			inputArgs:      []expr.Expression{exprtest.Return(system.Boolean(true))},
+			wantCollection: system.Collection{system.Boolean(true)},
+			wantErr:        false,
+		},
+		{
+			name: "returns true if all elements are integers",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3)},
+			inputArgs: []expr.Expression{&expr.IsExpression{
+				Expr: &expr.IdentityExpression{},
+				Type: reflection.MustCreateTypeSpecifier("System", "Integer"),
+			}},
+			wantCollection: system.Collection{system.Boolean(true)},
+			wantErr:        false,
+		},
+		{
+			name: "returns false if not all elements are integers",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.String("test"),
+				system.Integer(3)},
+			inputArgs: []expr.Expression{&expr.IsExpression{
+				Expr: &expr.IdentityExpression{},
+				Type: reflection.MustCreateTypeSpecifier("System", "Integer"),
+			}},
+			wantCollection: system.Collection{system.Boolean(false)},
+			wantErr:        false,
+		},
+		{
+			name: "returns error if criteria expression raises error",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3)},
+			inputArgs:      []expr.Expression{exprtest.Error(errors.New("some error"))},
+			wantCollection: nil,
+			wantErr:        true,
+			wantErrMsg:     "evaluating criteria expression resulted in an error: some error",
+		},
+		{
+			name: "returns error if args length is not 1",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3)},
+			inputArgs:      []expr.Expression{},
+			wantCollection: nil,
+			wantErr:        true,
+			wantErrMsg:     "incorrect function arity: received 0 arguments, expected 1",
+		},
+		{
+			name: "returns true if criteria expression returns non-boolean values",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2)},
+			inputArgs:      []expr.Expression{exprtest.Return(system.String("non-boolean"))},
+			wantCollection: system.Collection{system.Boolean(true)},
+			wantErr:        false,
+		},
+		{
+			name: "returns false if criteria expression returns an empty collection",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3)},
+			inputArgs:      []expr.Expression{exprtest.Return()},
+			wantCollection: system.Collection{system.Boolean(false)},
+			wantErr:        false,
+		},
+		{
+			name: "returns false if criteria expression returns multiple values",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3)},
+			inputArgs:      []expr.Expression{exprtest.Return(system.Boolean(true), system.Boolean(false))},
+			wantCollection: nil,
+			wantErr:        true,
+			wantErrMsg:     "collection is not singleton",
+		},
+		{
+			name: "returns true if input collection contains mixed types",
+			inputCollection: system.Collection{
+				system.Integer(1),
+				system.String("test"),
+				system.Boolean(true)},
+			inputArgs: []expr.Expression{&expr.IsExpression{
+				Expr: &expr.IdentityExpression{},
+				Type: reflection.MustCreateTypeSpecifier("System", "Any"),
+			}},
+			wantCollection: system.Collection{system.Boolean(true)},
+			wantErr:        false,
+		},
+		{
+			name: "returns true if input collection contains only strings",
+			inputCollection: system.Collection{
+				system.String("1"),
+				system.String("test"),
+				system.String("true")},
+			inputArgs: []expr.Expression{&expr.IsExpression{
+				Expr: &expr.IdentityExpression{},
+				Type: reflection.MustCreateTypeSpecifier("System", "String"),
+			}},
+			wantCollection: system.Collection{system.Boolean(true)},
+			wantErr:        false,
+		},
+		{
+			name: "returns false if input collection not contains only strings",
+			inputCollection: system.Collection{
+				system.Boolean(true),
+				system.String("test"),
+				system.String("true")},
+			inputArgs: []expr.Expression{&expr.IsExpression{
+				Expr: &expr.IdentityExpression{},
+				Type: reflection.MustCreateTypeSpecifier("System", "String"),
+			}},
+			wantCollection: system.Collection{system.Boolean(false)},
+			wantErr:        false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := impl.All(&expr.Context{}, tc.inputCollection, tc.inputArgs...)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("All() error = %v, wantErr %v", err, tc.wantErr)
+				return
+			}
+			if err != nil && err.Error() != tc.wantErrMsg {
+				t.Errorf("All() error message = %v, wantErrMsg %v", err.Error(), tc.wantErrMsg)
+			}
+			if diff := cmp.Diff(tc.wantCollection, got, protocmp.Transform()); diff != "" {
+				t.Errorf("All() returned unexpected diff (-want, +got)\n%s", diff)
 			}
 		})
 	}

@@ -2,6 +2,7 @@ package impl
 
 import (
 	"fmt"
+
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 )
@@ -72,6 +73,41 @@ func AnyFalse(ctx *expr.Context, input system.Collection, args ...expr.Expressio
 		}
 	}
 	return system.Collection{system.Boolean(false)}, nil
+}
+
+// All returns true if for every element in the input collection, criteria evaluates to true.
+// Otherwise, the result is false. If the input collection is empty ({}), the result is true.
+// FHIRPath docs here: https://hl7.org/fhirpath/N1/#allcriteria-expression-boolean
+func All(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {
+	// If the input collection is empty, return true
+	if input.IsEmpty() {
+		return system.Collection{system.Boolean(true)}, nil
+	}
+
+	// Validate that exactly one argument (the criteria expression) is provided
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%w: received %v arguments, expected 1", ErrWrongArity, len(args))
+	}
+
+	// Evaluate the criteria expression for each element in the input collection
+	for _, element := range input {
+		// Evaluate the criteria expression
+		output, err := args[0].Evaluate(ctx, system.Collection{element})
+		if err != nil {
+			return nil, fmt.Errorf("evaluating criteria expression resulted in an error: %w", err)
+		}
+
+		// Check that the output for false
+		// if 'err' is non-nil, `v` is false
+		if v, err := output.ToBool(); err != nil {
+			return nil, err
+		} else if !v {
+			return system.Collection{system.Boolean(false)}, nil
+		}
+	}
+
+	// Return true if all elements satisfy the criteria
+	return system.Collection{system.Boolean(true)}, nil
 }
 
 // Count returns the integer count of the number of items in the input collection.

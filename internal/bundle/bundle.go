@@ -8,10 +8,10 @@ package bundle
 import (
 	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/codes_go_proto"
 	bcrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
-	"github.com/verily-src/fhirpath-go/internal/slices"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/bundleopt"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/resource"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 )
 
 // New creates a new New by building it from the bundle options.
@@ -60,6 +60,12 @@ func NewHistory(options ...Option) *bcrpb.Bundle {
 // NewSearchset is a helper function for building a searchset bundle.
 func NewSearchset(options ...Option) *bcrpb.Bundle {
 	return New(cpb.BundleTypeCode_SEARCHSET, options...)
+}
+
+// NewTransactionResponse returns a new bundle with type TRANSACTION_RESPONSE.
+func NewTransactionResponse(entries ...*bcrpb.Bundle_Entry) *bcrpb.Bundle {
+	return New(cpb.BundleTypeCode_TRANSACTION_RESPONSE,
+		WithEntries(entries...))
 }
 
 // Unwrap unwraps a bundle into a slice of resources.

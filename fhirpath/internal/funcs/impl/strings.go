@@ -433,3 +433,39 @@ func ReplaceMatches(ctx *expr.Context, input system.Collection, args ...expr.Exp
 	result := system.String(re.ReplaceAllString(fullString, substitution))
 	return system.Collection{result}, nil
 }
+
+// Join takes a collection of strings and joins them into a single string,
+// optionally using the given separator. If no separator is specified,
+// the strings are directly concatenated.
+func Join(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {
+	if length := len(args); length > 1 {
+		return nil, fmt.Errorf("%w: received %v arguments, expected at most 1", ErrWrongArity, length)
+	}
+	if length := len(input); length == 0 {
+		return system.Collection{}, nil
+	}
+	delimiter := ""
+	if len(args) == 1 {
+		argValues, err := args[0].Evaluate(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		delimiter, err = argValues.ToString()
+		if err != nil {
+			return nil, err
+		}
+	}
+	var strs []string
+	for _, item := range input {
+		value, err := system.From(item)
+		if err != nil {
+			return nil, err
+		}
+		str, ok := value.(system.String)
+		if !ok {
+			return nil, fmt.Errorf("expected string, got %T", item)
+		}
+		strs = append(strs, string(str))
+	}
+	return system.Collection{system.String(strings.Join(strs, delimiter))}, nil
+}

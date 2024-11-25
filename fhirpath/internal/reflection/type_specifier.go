@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/protofields"
 )
 

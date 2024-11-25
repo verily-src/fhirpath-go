@@ -6,14 +6,14 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
-	"github.com/verily-src/fhirpath-go/internal/slices"
-	"github.com/verily-src/fhirpath-go/internal/resource"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/grammar"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/resource"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 )
 
 var (

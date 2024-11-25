@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/verily-src/fhirpath-go/internal/slices"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protopath"
 	"google.golang.org/protobuf/reflect/protorange"
