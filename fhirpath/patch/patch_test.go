@@ -14,12 +14,12 @@ import (
 	rgpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/request_group_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/fhirpath"
+	"github.com/verily-src/fhirpath-go/fhirpath/patch"
 	"github.com/verily-src/fhirpath-go/internal/containedresource"
 	"github.com/verily-src/fhirpath-go/internal/element/extension"
 	"github.com/verily-src/fhirpath-go/internal/element/reference"
-	"github.com/verily-src/fhirpath-go/fhirpath"
-	"github.com/verily-src/fhirpath-go/fhirpath/patch"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 

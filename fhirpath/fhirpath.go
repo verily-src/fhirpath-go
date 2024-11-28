@@ -3,14 +3,14 @@ package fhirpath
 import (
 	"errors"
 
-	"github.com/verily-src/fhirpath-go/internal/slices"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/fhirpath/evalopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/compile"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/opts"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/parser"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/internal/slices"
 )
 
 var (

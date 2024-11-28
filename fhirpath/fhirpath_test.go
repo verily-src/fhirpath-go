@@ -18,14 +18,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/shopspring/decimal"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
-	"github.com/verily-src/fhirpath-go/internal/element/extension"
-	"github.com/verily-src/fhirpath-go/internal/element/reference"
-	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"github.com/verily-src/fhirpath-go/fhirpath"
 	"github.com/verily-src/fhirpath-go/fhirpath/compopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/evalopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/element/extension"
+	"github.com/verily-src/fhirpath-go/internal/element/reference"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -951,6 +951,20 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			inputCollection: []fhir.Resource{patientChu},
 			wantCollection:  system.Collection{system.Boolean(false), system.Boolean(true)},
 		},
+		{
+			name:            "returns concatenated family name value with join()",
+			inputPath:       "name.family.value.join('-')",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.String("Chu-Chu")},
+			compileOptions:  []fhirpath.CompileOption{compopts.WithExperimentalFuncs()},
+		},
+		{
+			name:            "returns concatenated family name with join()",
+			inputPath:       "name.family.join('-')",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.String("Chu-Chu")},
+			compileOptions:  []fhirpath.CompileOption{compopts.WithExperimentalFuncs()},
+		},
 	}
 
 	testEvaluate(t, testCases)
@@ -1402,6 +1416,31 @@ func TestPolarityExpression(t *testing.T) {
 			inputPath:       "-1 - (-2)",
 			inputCollection: []fhir.Resource{},
 			wantCollection:  system.Collection{system.Integer(1)},
+		},
+	}
+
+	testEvaluate(t, testCases)
+}
+
+func TestAll_Evaluates(t *testing.T) {
+	testCases := []evaluateTestCase{
+		{
+			name:            "returns false if not all elements are integers",
+			inputPath:       "Patient.name.given.all($this is Integer)",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.Boolean(false)},
+		},
+		{
+			name:            "returns true if input is empty",
+			inputPath:       "{}.all($this is Integer)",
+			inputCollection: []fhir.Resource{},
+			wantCollection:  system.Collection{system.Boolean(true)},
+		},
+		{
+			name:            "returns true if born during the 21st century",
+			inputPath:       "Patient.birthDate.all($this >= @2000-01-01 and $this < @2100-01-01)",
+			inputCollection: []fhir.Resource{patientChu},
+			wantCollection:  system.Collection{system.Boolean(true)},
 		},
 	}
 

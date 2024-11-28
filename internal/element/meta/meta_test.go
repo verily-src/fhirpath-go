@@ -7,10 +7,10 @@ import (
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/element/canonical"
 	"github.com/verily-src/fhirpath-go/internal/element/extension"
 	"github.com/verily-src/fhirpath-go/internal/element/meta"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )

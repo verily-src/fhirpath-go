@@ -7,6 +7,7 @@ require (
 	github.com/google/fhir/go v0.7.4
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/go-set/v2 v2.1.0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	github.com/shopspring/decimal v1.4.0

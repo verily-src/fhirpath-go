@@ -1,6 +1,8 @@
 package bundle_test
 
 import (
+	"fmt"
+	"strconv"
 	"testing"
 
 	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/codes_go_proto"
@@ -10,9 +12,9 @@ import (
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/bundle"
 	"github.com/verily-src/fhirpath-go/internal/containedresource"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/resource"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -471,6 +473,71 @@ func TestSetEntryIfMatch(t *testing.T) {
 			gotVersion := tc.entry.GetRequest().GetIfMatch().GetValue()
 			if diff := cmp.Diff(gotVersion, tc.wantVersion); diff != "" {
 				t.Errorf("SetEntryIfMatch(%s) version got = %v, want = %v", tc.name, gotVersion, tc.wantVersion)
+			}
+		})
+	}
+}
+
+func TestStatusCodeFromEntry(t *testing.T) {
+	_, invalidStatusCodeErr := strconv.Atoi("inv")
+
+	testCases := []struct {
+		name      string
+		entry     *bcrpb.Bundle_Entry
+		wantCode  int
+		wantError error
+	}{
+		{
+			name: "response entry with valid code",
+			entry: &bcrpb.Bundle_Entry{
+				Response: &bcrpb.Bundle_Entry_Response{
+					Status: fhir.String("200 OK"),
+				},
+			},
+			wantCode:  200,
+			wantError: nil,
+		},
+		{
+			name: "response entry with missing code",
+			entry: &bcrpb.Bundle_Entry{
+				Response: &bcrpb.Bundle_Entry_Response{},
+			},
+			wantCode:  0,
+			wantError: bundle.ErrRspBundleEntryMissingStatus,
+		},
+		{
+			name: "response entry with short code",
+			entry: &bcrpb.Bundle_Entry{
+				Response: &bcrpb.Bundle_Entry_Response{
+					Status: fhir.String("11"),
+				},
+			},
+			wantCode:  0,
+			wantError: bundle.ErrRspBundleEntryShortStatus,
+		},
+		{
+			name: "response entry with invalid code",
+			entry: &bcrpb.Bundle_Entry{
+				Response: &bcrpb.Bundle_Entry_Response{
+					Status: fhir.String("invalid"),
+				},
+			},
+			wantError: fmt.Errorf("invalid (atoi) Bundle_Entry.response.status: %v", invalidStatusCodeErr),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotCode, gotError := bundle.StatusCodeFromEntry(tc.entry)
+
+			if tc.wantError != nil {
+				if gotError.Error() != tc.wantError.Error() {
+					t.Errorf("StatusCodeFromEntry(%s) error got = %v, want = %v", tc.name, gotError, tc.wantError)
+				}
+			}
+
+			if diff := cmp.Diff(gotCode, tc.wantCode); diff != "" {
+				t.Errorf("StatusCodeFromEntry(%s) code got = %v, want = %v", tc.name, gotCode, tc.wantCode)
 			}
 		})
 	}

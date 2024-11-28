@@ -4,22 +4,25 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/codes_go_proto"
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	bpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/binary_go_proto"
 	bcrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
 	"github.com/google/uuid"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/containedresource"
 	"github.com/verily-src/fhirpath-go/internal/element/reference"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/resource"
 )
 
 var (
-	ErrInvalidIdentity = fmt.Errorf("invaild resource identity")
-	ErrInvalidPayload  = fmt.Errorf("invalid payload")
-	ErrMissingPayload  = fmt.Errorf("%w: nil or empty payload", ErrInvalidPayload)
+	ErrInvalidIdentity             = fmt.Errorf("invaild resource identity")
+	ErrInvalidPayload              = fmt.Errorf("invalid payload")
+	ErrMissingPayload              = fmt.Errorf("%w: nil or empty payload", ErrInvalidPayload)
+	ErrRspBundleEntryMissingStatus = fmt.Errorf("missing Bundle_Entry.response.status")
+	ErrRspBundleEntryShortStatus   = fmt.Errorf("invalid (too short) Bundle_Entry.response.status")
 )
 
 // EntryOption is an option interface for constructing bundle entries
@@ -282,4 +285,22 @@ func SetEntryIfMatch(entry *bcrpb.Bundle_Entry) {
 	if version != "" {
 		req.IfMatch = fhir.String(version)
 	}
+}
+
+// StatusCodeFromEntry returns the numeric http code from
+// Bundle_Entry.response.status.
+func StatusCodeFromEntry(entry *bcrpb.Bundle_Entry) (int, error) {
+	status := entry.GetResponse().GetStatus()
+	if status == nil {
+		return 0, ErrRspBundleEntryMissingStatus
+	}
+	statusLine := status.GetValue()
+	if len(statusLine) < 3 {
+		return 0, ErrRspBundleEntryShortStatus
+	}
+	code, err := strconv.Atoi(statusLine[0:3])
+	if err != nil {
+		return 0, fmt.Errorf("invalid (atoi) Bundle_Entry.response.status: %v", err)
+	}
+	return code, nil
 }

@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
-	"github.com/verily-src/fhirpath-go/internal/resource"
 	"github.com/verily-src/fhirpath-go/internal/protofields"
+	"github.com/verily-src/fhirpath-go/internal/resource"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"

@@ -12,12 +12,14 @@ import (
 	clpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/claim_go_proto"
 	crpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/communication_request_go_proto"
 	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/condition_go_proto"
+	conpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/consent_go_proto"
 	cerpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/coverage_eligibility_request_go_proto"
 	dpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_go_proto"
 	drpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_request_go_proto"
 	epb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/encounter_go_proto"
 	erpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/enrollment_request_go_proto"
 	eobpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/explanation_of_benefit_go_proto"
+	gpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/goal_go_proto"
 	irpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/immunization_recommendation_go_proto"
 	mrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/medication_request_go_proto"
 	nopb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/nutrition_order_go_proto"
@@ -80,12 +82,16 @@ func TestIDFromResource(t *testing.T) {
 		// Resources
 		pass("patient", &ppb.Patient{Id: fhir.ID(mockPatientID)}),
 		fail("patient", &ppb.Patient{}),
+		pass("consent", &conpb.Consent{Patient: mockPatientRef}),
+		fail("consent", &conpb.Consent{}),
 		pass("encounter", &epb.Encounter{Subject: mockPatientRef}),
 		fail("encounter", &epb.Encounter{}),
 		pass("device", &dpb.Device{Patient: mockPatientRef}),
 		fail("device", &dpb.Device{}),
 		pass("explanation of benefit", &eobpb.ExplanationOfBenefit{Patient: mockPatientRef}),
 		fail("explanation of benefit", &eobpb.ExplanationOfBenefit{}),
+		pass("goal", &gpb.Goal{Subject: mockPatientRef}),
+		fail("goal", &gpb.Goal{}),
 		pass("research subject", &rspb.ResearchSubject{Individual: mockPatientRef}),
 		fail("research subject", &rspb.ResearchSubject{}),
 		pass("related person", &rppb.RelatedPerson{Patient: mockPatientRef}),
