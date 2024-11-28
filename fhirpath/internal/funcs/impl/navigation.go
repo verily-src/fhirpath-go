@@ -47,7 +47,6 @@ func Children(ctx *expr.Context, input system.Collection, args ...expr.Expressio
 			fe := expr.FieldExpression{FieldName: f}
 			messages, err := fe.Evaluate(ctx, system.Collection{base})
 			if err != nil {
-				fmt.Printf("Here: %v, %v, %v", base, f, err)
 				return nil, err
 			}
 			for _, val := range messages {
