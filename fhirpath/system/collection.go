@@ -193,6 +193,20 @@ func (c Collection) ToString() (string, error) {
 	return "", c.convertErr(v, "string")
 }
 
+// ToCanonical converts this Collection into a FHIR canonical type.
+// Returns an error if this collection is empty, contains more than 1 entry,
+// or a value other than a canonical value.
+func (c Collection) ToCanonical() (*dtpb.Canonical, error) {
+	v, err := c.ToSingleton()
+	if err != nil {
+		return nil, err
+	}
+	if result, ok := v.(*dtpb.Canonical); ok {
+		return result, nil
+	}
+	return nil, c.convertErr(v, "canonical")
+}
+
 // Contains returns true if the specified value is contained within this
 // collection. This will normalize types to system-types if necessary to check
 // for containment.

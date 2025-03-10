@@ -3,6 +3,7 @@ package fhirpath
 import (
 	"errors"
 
+	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	"github.com/verily-src/fhirpath-go/fhirpath/evalopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/compile"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
@@ -115,4 +116,13 @@ func (e *Expression) EvaluateAsInt32(input []fhir.Resource, options ...EvaluateO
 		return 0, err
 	}
 	return got.ToInt32()
+}
+
+// EvaluateAsCanonical evaluates the expression, returning a FHIR canonical or error
+func (e *Expression) EvaluateAsCanonical(input []fhir.Resource, options ...EvaluateOption) (*dtpb.Canonical, error) {
+	got, err := e.Evaluate(input, options...)
+	if err != nil {
+		return nil, err
+	}
+	return got.ToCanonical()
 }

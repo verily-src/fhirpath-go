@@ -82,13 +82,17 @@ func TimeToDuration(dt *dtpb.Time) time.Duration {
 func parseLocation(zone string) (*time.Location, error) {
 	if zone == "" {
 		return time.UTC, nil
-	} else if tm, err := time.Parse("MST", zone); err == nil {
-		return tm.Location(), nil
-	} else if tm, err := time.Parse("Z07:00", zone); err == nil {
-		return tm.Location(), nil
-	} else {
-		return nil, fmt.Errorf("unable to parse time-zone from '%v'", zone)
 	}
+	if tm, err := time.Parse("MST", zone); err == nil {
+		return tm.Location(), nil
+	}
+	if tm, err := time.Parse("Z07:00", zone); err == nil {
+		return tm.Location(), nil
+	}
+	if zone == "Local" {
+		return time.Local, nil
+	}
+	return nil, fmt.Errorf("unable to parse time-zone from '%v'", zone)
 }
 
 // DurationToDuration converts a FHIR Duration element into a Go native

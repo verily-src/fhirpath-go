@@ -6,12 +6,33 @@ import (
 	"testing"
 
 	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
+	binpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/binary_go_proto"
+	conpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/consent_go_proto"
+	dpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_go_proto"
+	drpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/document_reference_go_proto"
+	listpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/list_go_proto"
+	locpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/location_go_proto"
+	opb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/observation_go_proto"
+	orgpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/organization_go_proto"
+	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
+	pepb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/person_go_proto"
+	qrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/questionnaire_response_go_proto"
+	rstudpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/research_study_go_proto"
+	rsubpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/research_subject_go_proto"
+	vrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/verification_result_go_proto"
+	"github.com/verily-src/fhirpath-go/internal/element/reference"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/protofields"
 	"github.com/verily-src/fhirpath-go/internal/resource"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+)
+
+// Shared constants for test resources.
+const (
+	patientURN       = "urn:uuid:patient"
+	researchStudyURN = "urn:uuid:researchStudy"
 )
 
 // Resources is a map of all resource-names to an instance of that resource type.
@@ -53,8 +74,8 @@ func NewResource(t *testing.T, resourceType resource.Type, opts ...ResourceOptio
 	return nil
 }
 
-// NewResource creates a dummy resource object for the purposes of testing
-// of type `T. If `T` is not a valid FHIR R4 resource, this will fail testing.
+// NewResourceOf creates a dummy resource object for the purposes of testing
+// of type `T`. If `T` is not a valid FHIR R4 resource, this will fail testing.
 func NewResourceOf[T fhir.Resource](t *testing.T, opts ...ResourceOption) T {
 	t.Helper()
 	var res T
@@ -77,108 +98,159 @@ func NewResourceFromBase(t *testing.T, resource fhir.Resource, opts ...ResourceO
 	return modifiedResource
 }
 
-// WithResourceModification applies a modifier on a resource. Resource and
-// modifier must be the same type.
-func WithResourceModification[T fhir.Resource](modifier func(T)) ResourceOption {
-	return func(t *testing.T, res fhir.Resource) {
-		t.Helper()
-		val, ok := res.(T)
-		if !ok {
-			var modifierType T
-			t.Fatalf("Modifier type != applied resource type: (%s) != (%s)", resource.TypeOf(modifierType), resource.TypeOf(res))
-		}
-		modifier(val)
+// NewBinary returns a test Binary resource with its required field populated:
+//
+//	content_type = image/jpeg
+func NewBinary(t *testing.T, opts ...ResourceOption) *binpb.Binary {
+	finalOpts := []ResourceOption{
+		WithCodeField("content_type", "image/jpeg"),
 	}
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*binpb.Binary](t, finalOpts...)
 }
 
-// WithJSONField creates a ResourceOpt for setting up the specified proto-field
-// with the given value in JSON format.
+// NewConsent returns a test Consent resource with its required fields populated:
 //
-// This will fail tests if the field is invalid, or if the JSON does not
-// unmarshal correctly.
-func WithJSONField(field, value string) ResourceOption {
-	return func(t *testing.T, r fhir.Resource) {
-		t.Helper()
-		msg := r.ProtoReflect()
-		field := getProtoField(t, msg, field)
-
-		s := msg.Get(field).Message().New().Interface()
-		if err := protojson.Unmarshal([]byte(value), s); err != nil {
-			t.Fatalf("Invalid JSON '%v': %v", value, err)
-		}
-
-		msg.Set(field, protoreflect.ValueOfMessage(s.ProtoReflect()))
+//	category = my-code-text
+//	policy_rule = my-code-text
+//	status = ACTIVE
+//	scope = my-code-text
+func NewConsent(t *testing.T, opts ...ResourceOption) *conpb.Consent {
+	finalOpts := []ResourceOption{
+		WithRepeatedProtoField("category", fhir.CodeableConcept("my-code-text")),
+		WithProtoField("policy_rule", fhir.CodeableConcept("my-code-text")),
+		WithCodeField("status", "ACTIVE"),
+		WithProtoField("scope", fhir.CodeableConcept("my-code-text")),
 	}
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*conpb.Consent](t, finalOpts...)
 }
 
-// WithCodeField creates a ResourceOpt for setting up the specified proto-field
-// with the value of a resource code.
-//
-// This can be used as a short-hand for constructing arbitrary strongly-typed
-// code-fields from a simple string, such as `WithCodeField("status", "DRAFT")`
-// for producing the "Draft" state for a CanonicalResource status.
-//
-// This will fail tests if the field is invalid, or if the JSON does not
-// unmarshal correctly.
-func WithCodeField(field, value string) ResourceOption {
-	// All "Code" objects are serialized in JSON as just { "value": "<value>" };
-	// using this property enables us to set different codes for the fhir protos
-	// which otherwise use strong-types (e.g. Questionnaire.Status is a different
-	// type from Account.Status, but both use the underlying PublicationCode string.)
-	return WithJSONField(field, fmt.Sprintf(`{ "value": "%v" }`, value))
+// NewDevice returns a test Device resource.
+func NewDevice(t *testing.T, opts ...ResourceOption) *dpb.Device {
+	return NewResourceOf[*dpb.Device](t, opts...)
 }
 
-// WithProtoField creates a ResourceOpt for setting up the specified proto-field
-// with the value set in the proto message.
+// NewDocumentReference returns a test DocumentReference resource with one of its required fields populated:
 //
-// This will fail tests if the field is invalid, or panic if message is the
-// wrong input type.
-func WithProtoField(field string, message proto.Message) ResourceOption {
-	return func(t *testing.T, r fhir.Resource) {
-		t.Helper()
-		msg := r.ProtoReflect()
-		field := getProtoField(t, msg, field)
-
-		msg.Set(field, protoreflect.ValueOfMessage(message.ProtoReflect()))
+//	status = CURRENT
+//
+// Note: Content is also required, but is left out because there is no default title or uri that can suffice.
+func NewDocumentReference(t *testing.T, opts ...ResourceOption) *drpb.DocumentReference {
+	// Default options
+	finalOpts := []ResourceOption{
+		WithCodeField("status", "CURRENT"),
 	}
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*drpb.DocumentReference](t, finalOpts...)
 }
 
-// WithRepeatedProtoField creates a ResourceOpt for setting up the specified
-// repeated proto-field with the values set in the supplied proto messages.
+// NewList returns a test List resource with its required fields populated:
 //
-// This will fail tests if the field is invalid, or panic if message is the
-// wrong input type.
-func WithRepeatedProtoField(field string, messages ...proto.Message) ResourceOption {
-	return func(t *testing.T, r fhir.Resource) {
-		t.Helper()
-		msg := r.ProtoReflect()
-		field := getProtoField(t, msg, field)
-		list := msg.Mutable(field).List()
-		for _, message := range messages {
-			list.Append(protoreflect.ValueOfMessage(message.ProtoReflect()))
-		}
-		msg.Set(field, protoreflect.ValueOfList(list))
+//	status = CURRENT
+//	mode = WORKING
+func NewList(t *testing.T, opts ...ResourceOption) *listpb.List {
+	// Default options
+	finalOpts := []ResourceOption{
+		WithCodeField("status", "CURRENT"),
+		WithCodeField("mode", "WORKING"),
 	}
+	// Add on opts provided, which will override the defaults.
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*listpb.List](t, finalOpts...)
 }
 
-// WithGeneratedIdentifier creates a ResourceOpt for automatically
-// generating an Identifier for the given resource with the specified system.
-// If the resource implements GetIdentifier(), an Identifier will be generated
-// and added.
-// If the resource does not, then we will fail the test.
-func WithGeneratedIdentifier(system string) ResourceOption {
-	return func(t *testing.T, r fhir.Resource) {
-		// set Identifier if available
-		if cast, ok := r.(resource.HasGetIdentifierList); ok {
-			ids := []*datatypes_go_proto.Identifier{generateIdentifier(system)}
-			setIdentifierList(cast, ids)
-		} else if cast, ok := r.(resource.HasGetIdentifierSingle); ok {
-			id := generateIdentifier(system)
-			setIdentifier(cast, id)
-		} else {
-			t.Errorf("WithGeneratedIdentifier: invalid resource type %v has no GetIdentifier()", r)
-		}
+// NewLocation returns a test Location resource.
+func NewLocation(t *testing.T, opts ...ResourceOption) *locpb.Location {
+	return NewResourceOf[*locpb.Location](t, opts...)
+}
+
+// NewObservation returns a test Observation resource with its required fields populated:
+//
+//	code = my-code-text
+//	status = PRELIMINARY
+func NewObservation(t *testing.T, opts ...ResourceOption) *opb.Observation {
+	// Default options
+	finalOpts := []ResourceOption{
+		WithProtoField("code", fhir.CodeableConcept("my-code-text")),
+		WithCodeField("status", "PRELIMINARY"),
 	}
+	// Add on opts provided, which will override the defaults.
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*opb.Observation](t, finalOpts...)
+}
+
+// NewOrganization returns a test Organization resource.
+func NewOrganization(t *testing.T, opts ...ResourceOption) *orgpb.Organization {
+	return NewResourceOf[*orgpb.Organization](t, opts...)
+}
+
+// NewPatient returns a test Patient resource.
+func NewPatient(t *testing.T, opts ...ResourceOption) *ppb.Patient {
+	return NewResourceOf[*ppb.Patient](t, opts...)
+}
+
+// NewPerson returns a test Person resource.
+func NewPerson(t *testing.T, opts ...ResourceOption) *pepb.Person {
+	return NewResourceOf[*pepb.Person](t, opts...)
+}
+
+// NewQuestionnaireResponse returns a test QuestionnaireResponse resource with its required fields populated:
+//
+//	subject = <Patient reference>
+//	status = COMPLETED
+func NewQuestionnaireResponse(t *testing.T, opts ...ResourceOption) *qrpb.QuestionnaireResponse {
+	// Default options
+	finalOpts := []ResourceOption{
+		WithProtoField("subject", reference.Weak("Patient", patientURN)),
+		WithCodeField("status", "COMPLETED"),
+	}
+	// Add on opts provided, which will override the defaults.
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*qrpb.QuestionnaireResponse](t, finalOpts...)
+}
+
+// NewResearchStudy returns a test ResearchStudy resource with its required field populated:
+//
+//	status = APPROVED
+func NewResearchStudy(t *testing.T, opts ...ResourceOption) *rstudpb.ResearchStudy {
+	// Default options
+	finalOpts := []ResourceOption{
+		WithCodeField("status", "APPROVED"),
+	}
+	// Add on opts provided, which will override the defaults.
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*rstudpb.ResearchStudy](t, finalOpts...)
+}
+
+// NewResearchSubject returns a test ResearchSubject resource with its required fields populated:
+//
+//	individual = <Patient reference>
+//	status = ELIGIBLE
+//	study = <ResearchStudy reference>
+func NewResearchSubject(t *testing.T, opts ...ResourceOption) *rsubpb.ResearchSubject {
+	// Default options
+	finalOpts := []ResourceOption{
+		WithProtoField("individual", reference.Weak("Patient", patientURN)),
+		WithCodeField("status", "ELIGIBLE"),
+		WithProtoField("study", reference.Weak("ResearchStudy", researchStudyURN)),
+	}
+	// Add on opts provided, which will override the defaults.
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*rsubpb.ResearchSubject](t, finalOpts...)
+}
+
+// NewVerificationResult returns a test VerificationResult resource with its required fields populated:
+//
+//	status = VALIDATED
+func NewVerificationResult(t *testing.T, opts ...ResourceOption) *vrpb.VerificationResult {
+	// Default options
+	finalOpts := []ResourceOption{
+		WithCodeField("status", "VALIDATED"),
+	}
+	// Add on opts provided, which will override the defaults.
+	finalOpts = append(finalOpts, opts...)
+	return NewResourceOf[*vrpb.VerificationResult](t, finalOpts...)
 }
 
 func init() {
@@ -276,14 +348,6 @@ func setIdentifierList(resource resource.HasGetIdentifierList, identifiers []*da
 		list.Append(protoreflect.ValueOfMessage(identifier.ProtoReflect()))
 	}
 	msg.Set(field, protoreflect.ValueOfList(list))
-}
-
-// generateIdentifier generates a (stable) random Identifier with the given system
-func generateIdentifier(system string) *datatypes_go_proto.Identifier {
-	return &datatypes_go_proto.Identifier{
-		System: &datatypes_go_proto.Uri{Value: system},
-		Value:  &datatypes_go_proto.String{Value: stableRandomID().Value},
-	}
 }
 
 // getProtoField is a helper function for retrieving the named proto field

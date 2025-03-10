@@ -87,43 +87,6 @@ func WithIfNoneExist(identifier *dtpb.Identifier) EntryOption {
 	return ifNoneExistOpt{identifier: identifier}
 }
 
-// NewGetEntry constructs a bundle entry with a GET request for the head value
-// of a resource. This is the FHIR "read" interaction.
-//
-// For use within a batch or transaction bundle.
-//
-// Clients should not request a versioned resource by crafting a special id
-// argument; instead client should use VersionedGetEntry() below.
-func NewGetEntry(typeName resource.Type, id string, opts ...EntryOption) *bcrpb.Bundle_Entry {
-	return NewVersionedGetEntry(typeName, id, "" /*version*/, opts...)
-}
-
-// NewVersionedGetEntry constructs a bundle entry with a GET request
-// for the versioned value of a resource. This is the FHIR "vread" interaction.
-//
-// For use within a batch or transaction bundle.
-//
-// If version is empty, the returned entry requests the head version (a simple GET).
-//
-// The Bundle_Entry.FullUrl element is set to the requested resource's
-// relative URL (without version). This is "good enough", despite questionable
-// compliance with the standard. Clients may override this using WithFullUrl().
-//
-// This function does NOT support the "history-*" (eg "history-instance")
-// interactions. Those interaction return all the historical versions
-// for one or more resources, and are not supported within a batch
-// or transaction bundle.
-func NewVersionedGetEntry(typeName resource.Type, id string, version string, opts ...EntryOption) *bcrpb.Bundle_Entry {
-	url := string(typeName) + "/" + id
-	requestUrl := url
-	if version != "" {
-		requestUrl += "/_history/" + version
-	}
-	entry := bundleEntry(cpb.HTTPVerbCode_GET, nil /*resource*/, requestUrl)
-	entry.FullUrl = fhir.URI(url)
-	return applyOptions(entry, opts)
-}
-
 // NewPostEntry wraps a FHIR Resource for a transaction bundle to be written to
 // storage via a POST request.
 //

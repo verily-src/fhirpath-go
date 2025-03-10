@@ -24,7 +24,7 @@ var (
 )
 
 type FHIRPathVisitor struct {
-	*antlr.BaseParseTreeVisitor
+	*grammar.BasefhirpathVisitor
 	visitedRoot bool
 	Functions   funcs.FunctionTable
 	Transform   VisitorTransform

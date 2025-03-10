@@ -3,12 +3,25 @@ package fhirtest_test
 import (
 	"regexp"
 	"testing"
+	"time"
 
-	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/codes_go_proto"
+	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/codes_go_proto"
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
+	dpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_go_proto"
+	drpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/document_reference_go_proto"
+	listpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/list_go_proto"
+	locpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/location_go_proto"
+	opb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/observation_go_proto"
 	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
+	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
+	pepb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/person_go_proto"
 	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/questionnaire_go_proto"
+	qrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/questionnaire_response_go_proto"
+	rstudpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/research_study_go_proto"
+	rsubpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/research_subject_go_proto"
+	vrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/verification_result_go_proto"
 	"github.com/google/go-cmp/cmp"
+	"github.com/verily-src/fhirpath-go/internal/element/reference"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/fhirtest"
 	"github.com/verily-src/fhirpath-go/internal/resource"
@@ -117,7 +130,7 @@ func TestWithFieldJSON_SetsAccountStatusField(t *testing.T) {
 		fhirtest.WithJSONField("status", `{"value": "DRAFT"}`),
 	).(*questionnaire_go_proto.Questionnaire)
 
-	if got, want := sut.GetStatus().GetValue(), codes_go_proto.PublicationStatusCode_DRAFT; got != want {
+	if got, want := sut.GetStatus().GetValue(), cpb.PublicationStatusCode_DRAFT; got != want {
 		t.Errorf("WithFieldJSON: got code %v, want code %v", got, want)
 	}
 }
@@ -141,7 +154,7 @@ func TestWithFieldCodeJSON_SetsAccountStatusField(t *testing.T) {
 		fhirtest.WithCodeField("status", "DRAFT"),
 	).(*questionnaire_go_proto.Questionnaire)
 
-	if got, want := sut.GetStatus().GetValue(), codes_go_proto.PublicationStatusCode_DRAFT; got != want {
+	if got, want := sut.GetStatus().GetValue(), cpb.PublicationStatusCode_DRAFT; got != want {
 		t.Errorf("WithFieldCodeJSON: got code %v, want code %v", got, want)
 	}
 }
@@ -321,6 +334,149 @@ func TestResources_ResourceHasLastModified(t *testing.T) {
 			if resource.GetMeta().GetLastUpdated().GetValueUs() == 0 {
 				t.Errorf("Resource(%v): got unset last-update time", name)
 			}
+		})
+	}
+}
+
+// Tests that all resources can be created using their respective test helpers
+func TestNewResources(t *testing.T) {
+	patientURN := "urn:uuid:patient"
+	researchStudyURN := "urn:uuid:researchStudy"
+
+	patientRef := reference.Weak(resource.Patient, patientURN)
+	researchStudyRef := reference.Weak(resource.ResearchStudy, researchStudyURN)
+
+	meta := &dtpb.Meta{
+		LastUpdated: fhir.Instant(time.Now()),
+		VersionId:   fhir.RandomID(),
+	}
+	id := fhir.RandomID()
+
+	testCases := []struct {
+		name         string
+		gotResource  fhir.Resource
+		wantResource fhir.Resource
+	}{
+		{
+			name:        "Device",
+			gotResource: fhirtest.NewDevice(t),
+			wantResource: &dpb.Device{
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "DocumentReference",
+			gotResource: fhirtest.NewDocumentReference(t),
+			wantResource: &drpb.DocumentReference{
+				Status: &drpb.DocumentReference_StatusCode{
+					Value: cpb.DocumentReferenceStatusCode_CURRENT,
+				},
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "List",
+			gotResource: fhirtest.NewList(t),
+			wantResource: &listpb.List{
+				Status: &listpb.List_StatusCode{
+					Value: cpb.ListStatusCode_CURRENT,
+				},
+				Mode: &listpb.List_ModeCode{
+					Value: cpb.ListModeCode_WORKING,
+				},
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "Location",
+			gotResource: fhirtest.NewLocation(t),
+			wantResource: &locpb.Location{
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "Observation",
+			gotResource: fhirtest.NewObservation(t),
+			wantResource: &opb.Observation{
+				Status: &opb.Observation_StatusCode{
+					Value: cpb.ObservationStatusCode_PRELIMINARY,
+				},
+				Code: fhir.CodeableConcept("my-code-text"),
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "Patient",
+			gotResource: fhirtest.NewPatient(t),
+			wantResource: &ppb.Patient{
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "Person",
+			gotResource: fhirtest.NewPerson(t),
+			wantResource: &pepb.Person{
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "QuestionnaireResponse",
+			gotResource: fhirtest.NewQuestionnaireResponse(t),
+			wantResource: &qrpb.QuestionnaireResponse{
+				Subject: patientRef,
+				Status: &qrpb.QuestionnaireResponse_StatusCode{
+					Value: cpb.QuestionnaireResponseStatusCode_COMPLETED,
+				},
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "ResearchStudy",
+			gotResource: fhirtest.NewResearchStudy(t),
+			wantResource: &rstudpb.ResearchStudy{
+				Status: &rstudpb.ResearchStudy_StatusCode{
+					Value: cpb.ResearchStudyStatusCode_APPROVED,
+				},
+				Meta: meta,
+				Id:   id,
+			},
+		},
+		{
+			name:        "ResearchSubject",
+			gotResource: fhirtest.NewResearchSubject(t),
+			wantResource: &rsubpb.ResearchSubject{
+				Individual: patientRef,
+				Status: &rsubpb.ResearchSubject_StatusCode{
+					Value: cpb.ResearchSubjectStatusCode_ELIGIBLE,
+				},
+				Study: researchStudyRef,
+				Meta:  meta,
+				Id:    id,
+			},
+		},
+		{
+			name:        "VerificationResult",
+			gotResource: fhirtest.NewVerificationResult(t),
+			wantResource: &vrpb.VerificationResult{
+				Status: &vrpb.VerificationResult_StatusCode{
+					Value: cpb.StatusCode_VALIDATED,
+				},
+				Meta: meta,
+				Id:   id,
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			requireMatch(t, resource.Type(tc.name), tc.gotResource, tc.wantResource)
 		})
 	}
 }

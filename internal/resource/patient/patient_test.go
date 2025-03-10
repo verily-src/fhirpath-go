@@ -8,6 +8,7 @@ import (
 	apb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/account_go_proto"
 	appb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/appointment_go_proto"
 	arpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/appointment_response_go_proto"
+	bapb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/basic_go_proto"
 	cppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/care_plan_go_proto"
 	clpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/claim_go_proto"
 	crpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/communication_request_go_proto"
@@ -82,6 +83,8 @@ func TestIDFromResource(t *testing.T) {
 		// Resources
 		pass("patient", &ppb.Patient{Id: fhir.ID(mockPatientID)}),
 		fail("patient", &ppb.Patient{}),
+		pass("basic", &bapb.Basic{Subject: mockPatientRef}),
+		fail("basic", &bapb.Basic{}),
 		pass("consent", &conpb.Consent{Patient: mockPatientRef}),
 		fail("consent", &conpb.Consent{}),
 		pass("encounter", &epb.Encounter{Subject: mockPatientRef}),
