@@ -9,6 +9,7 @@ import (
 	bcrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
 	epb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/encounter_go_proto"
 	ispb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/imaging_study_go_proto"
+	impb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/immunization_go_proto"
 	opb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/observation_go_proto"
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	rgpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/request_group_go_proto"
@@ -384,6 +385,13 @@ func TestAdd_InvalidInputs(t *testing.T) {
 			field:   "resource",
 			input:   nil,
 			value:   fhir.String(""),
+			wantErr: patch.ErrInvalidInput,
+		}, {
+			name:    "Fail cast from ID to Reference",
+			path:    "Immunization",
+			field:   "patient",
+			input:   &impb.Immunization{},
+			value:   fhir.String("12345"),
 			wantErr: patch.ErrInvalidInput,
 		},
 	}

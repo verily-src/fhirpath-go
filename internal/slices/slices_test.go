@@ -1,7 +1,9 @@
 package slices_test
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -60,6 +62,13 @@ type mapTestCase[T any, U any] struct {
 	name     string
 	arr      StrongSlice[T]
 	expected []U
+}
+
+type mapWithErrorTestCase[T any] struct {
+	name    string
+	arr     StrongSlice[T]
+	want    []string
+	wantErr error
 }
 
 type stringTestCase[T any] struct {
@@ -441,6 +450,51 @@ func TestMap(t *testing.T) {
 			got, want := result, tc.expected
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("Map(%s) mismatch (-want, +got):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestMapWithError(t *testing.T) {
+	emailError := errors.New("invalid email address")
+	verifyValidEmail := func(email string) (string, error) {
+		emailPattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+		re := regexp.MustCompile(emailPattern)
+		if !re.MatchString(email) {
+			return "", emailError
+		}
+		return email, nil
+	}
+
+	testCases := []struct {
+		name    string
+		arr     StrongSlice[string]
+		want    []string
+		wantErr error
+	}{
+		{
+			"good emails",
+			StrongSlice[string]{"slices@example.com"},
+			[]string{"slices@example.com"},
+			nil,
+		},
+		{
+			"good and bad emails",
+			StrongSlice[string]{"@example.com"},
+			nil,
+			emailError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, gotErr := slices.MapWithError(tc.arr, verifyValidEmail)
+			if gotErr != tc.wantErr {
+				t.Errorf("MapWithError(%s) mismatch errors: want [%v], got [%v]", tc.name, tc.wantErr, gotErr)
+			}
+			got, want := result, tc.want
+			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("MapWithError(%s) mismatch (-want, +got):\n%s", tc.name, diff)
 			}
 		})
 	}

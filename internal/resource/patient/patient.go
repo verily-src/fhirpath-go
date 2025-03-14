@@ -7,6 +7,7 @@ import (
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	appb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/appointment_go_proto"
 	arpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/appointment_response_go_proto"
+	bapb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/basic_go_proto"
 	cppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/care_plan_go_proto"
 	clpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/claim_go_proto"
 	commpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/communication_go_proto"
@@ -69,6 +70,8 @@ func IDFromResource(res fhir.Resource) (string, error) {
 			return id, nil
 		}
 		return "", fmt.Errorf("%w from %T", ErrExtractingPatientID, res)
+	case *bapb.Basic:
+		return idOrError(res.GetSubject())
 	case *conpb.Consent:
 		return idOrError(res.GetPatient())
 	case *epb.Encounter:

@@ -36,45 +36,6 @@ var (
 	uriPutEntry                = makePatientEntry(cpb.HTTPVerbCode_PUT, patient, iuURI, "")
 )
 
-func TestGetEntry(t *testing.T) {
-	// Only a single test case because the impl is a pass-thru to VersionedGetEntry.
-	wantEntry := makeEntryForGet("Patient/1234", "//Full")
-	gotEntry := bundle.NewGetEntry(resource.Patient, "1234",
-		bundle.WithFullURL("//Full"))
-
-	if diff := cmp.Diff(wantEntry, gotEntry, protocmp.Transform()); diff != "" {
-		t.Errorf("GetEntry mismatch (-want, +got):\n%s", diff)
-	}
-}
-
-func TestVersionedGetEntry(t *testing.T) {
-	testCases := []struct {
-		name      string
-		typeName  string
-		id        string
-		version   string
-		opts      []bundle.EntryOption
-		wantEntry *bcrpb.Bundle_Entry
-	}{
-		{"no version", "Patient", "1234", "", nil, makeEntryForGet("Patient/1234", "Patient/1234")},
-		{"with version", "Patient", "1234", "abcd", nil, makeEntryForGet("Patient/1234/_history/abcd", "Patient/1234")},
-		{"with full", "Patient", "1234", "abcd", []bundle.EntryOption{bundle.WithFullURL("//Full")},
-			makeEntryForGet("Patient/1234/_history/abcd", "//Full")},
-		{"ignore if-none-exist", "Patient", "1234", "", []bundle.EntryOption{ifNoneExistFullOpt},
-			makeEntryForGet("Patient/1234", "Patient/1234")},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			entry := bundle.NewVersionedGetEntry(resource.Type(tc.typeName), tc.id, tc.version, tc.opts...)
-
-			got, want := entry, tc.wantEntry
-			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
-				t.Errorf("VersionedGetEntry(%s) mismatch (-want, +got):\n%s", tc.name, diff)
-			}
-		})
-	}
-}
-
 func makeEntryForGet(requestUrl string, fullUrl string) *bcrpb.Bundle_Entry {
 	return &bcrpb.Bundle_Entry{
 		FullUrl: fhir.URI(fullUrl),

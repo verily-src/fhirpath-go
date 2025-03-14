@@ -125,6 +125,21 @@ func Map[T any, U any](vals []T, mapper func(T) U) []U {
 	return mapped
 }
 
+// MapWithError returns a new slice with the elements of the original
+// slice transformed according to the provided function and any errors
+// encountered from that transformation.
+func MapWithError[T any, U any](vals []T, mapper func(T) (U, error)) ([]U, error) {
+	mapped := make([]U, 0, len(vals))
+	for _, val := range vals {
+		currMapped, err := mapper(val)
+		if err != nil {
+			return nil, err
+		}
+		mapped = append(mapped, currMapped)
+	}
+	return mapped, nil
+}
+
 // Reverse performs an in-place reversal of the elements in a slice.
 // Performance testing has not been done to compare to alternatives.
 func Reverse[S ~[]T, T any](t S) {

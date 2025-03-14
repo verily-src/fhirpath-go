@@ -235,7 +235,7 @@ func (e *Expression) normalizeAdd(valueMessage protoreflect.Message, value fhir.
 			// we need to patch them in after the reference is created,
 			// which is why we're only updating the ID field here.
 			valueField := valueMessage.Descriptor().Fields().ByName("value")
-			if valueField.FullName() == "google.fhir.r4.core.ReferenceId.value" {
+			if valueField != nil && valueField.FullName() == "google.fhir.r4.core.ReferenceId.value" {
 				newVal = &dtpb.ReferenceId{Value: value.GetValue()}
 			}
 		}

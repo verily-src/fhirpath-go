@@ -7,17 +7,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/verily-src/fhirpath-go/internal/element/reference"
+	"github.com/verily-src/fhirpath-go/internal/fhirtest"
 	"github.com/verily-src/fhirpath-go/internal/resource"
 )
-
-func newIdentity(t *testing.T, typeName, id, version string) *resource.Identity {
-	t.Helper()
-	ident, err := resource.NewIdentity(typeName, id, version)
-	if err != nil {
-		t.Fatalf("NewIdentity: %v", err)
-	}
-	return ident
-}
 
 func TestIdentityOf_BadReference_ReturnsError(t *testing.T) {
 	testCases := []struct {
@@ -73,7 +65,7 @@ func TestIdentityOf(t *testing.T) {
 					AccountId: &dtpb.ReferenceId{Value: "123"},
 				},
 			},
-			newIdentity(t, "Account", "123", ""),
+			fhirtest.NewIdentity(t, "Account", "123", ""),
 		},
 		{
 			"Reference with history",
@@ -82,7 +74,7 @@ func TestIdentityOf(t *testing.T) {
 					PatientId: &dtpb.ReferenceId{Value: "123", History: &dtpb.Id{Value: "abc"}},
 				},
 			},
-			newIdentity(t, "Patient", "123", "abc"),
+			fhirtest.NewIdentity(t, "Patient", "123", "abc"),
 		},
 		{
 			"Relative uri reference",
@@ -93,7 +85,7 @@ func TestIdentityOf(t *testing.T) {
 					},
 				},
 			},
-			newIdentity(t, "Patient", "123", ""),
+			fhirtest.NewIdentity(t, "Patient", "123", ""),
 		},
 		{
 			"Relative uri reference with history",
@@ -104,7 +96,7 @@ func TestIdentityOf(t *testing.T) {
 					},
 				},
 			},
-			newIdentity(t, "Patient", "123", "abc"),
+			fhirtest.NewIdentity(t, "Patient", "123", "abc"),
 		},
 		{
 			"Absolute uri reference",
@@ -115,7 +107,7 @@ func TestIdentityOf(t *testing.T) {
 					},
 				},
 			},
-			newIdentity(t, "Patient", "123", ""),
+			fhirtest.NewIdentity(t, "Patient", "123", ""),
 		},
 		{
 			"Absolute uri reference with history",
@@ -126,7 +118,7 @@ func TestIdentityOf(t *testing.T) {
 					},
 				},
 			},
-			newIdentity(t, "Patient", "123", "abc"),
+			fhirtest.NewIdentity(t, "Patient", "123", "abc"),
 		},
 		{
 			"Fragment reference",
@@ -140,7 +132,7 @@ func TestIdentityOf(t *testing.T) {
 					Value: "Patient",
 				},
 			},
-			newIdentity(t, "Patient", "123", ""),
+			fhirtest.NewIdentity(t, "Patient", "123", ""),
 		},
 	}
 	for _, tc := range testCases {
@@ -200,12 +192,12 @@ func TestIdentityFromAbsoluteURL(t *testing.T) {
 		{
 			"no version",
 			"https://healthcare.googleapis.com/v1/projects/123/locations/abc/datasets/def/fhirStores/ghi/fhir/Patient/123",
-			newIdentity(t, "Patient", "123", ""),
+			fhirtest.NewIdentity(t, "Patient", "123", ""),
 		},
 		{
 			"versioned",
 			"https://healthcare.googleapis.com/v1/projects/123/locations/abc/datasets/def/fhirStores/ghi/fhir/Patient/123/_history/abc",
-			newIdentity(t, "Patient", "123", "abc"),
+			fhirtest.NewIdentity(t, "Patient", "123", "abc"),
 		},
 	}
 	for _, tc := range testCases {
@@ -239,12 +231,12 @@ func TestIdentityFromRelativeURI(t *testing.T) {
 		{
 			"no version",
 			"Patient/123",
-			newIdentity(t, "Patient", "123", ""),
+			fhirtest.NewIdentity(t, "Patient", "123", ""),
 		},
 		{
 			"versioned",
 			"Patient/123/_history/abc",
-			newIdentity(t, "Patient", "123", "abc"),
+			fhirtest.NewIdentity(t, "Patient", "123", "abc"),
 		},
 	}
 	for _, tc := range testCases {
@@ -278,17 +270,17 @@ func TestIdentityFromURL(t *testing.T) {
 		{
 			"absolute url",
 			"https://healthcare.googleapis.com/v1/projects/123/locations/abc/datasets/def/fhirStores/ghi/fhir/Patient/123",
-			newIdentity(t, "Patient", "123", ""),
+			fhirtest.NewIdentity(t, "Patient", "123", ""),
 		},
 		{
 			"relative uri",
 			"Patient/123/_history/abc",
-			newIdentity(t, "Patient", "123", "abc"),
+			fhirtest.NewIdentity(t, "Patient", "123", "abc"),
 		},
 		{
 			"relative uri using RequestGroup resource type",
 			"RequestGroup/123/_history/abc",
-			newIdentity(t, "RequestGroup", "123", "abc"),
+			fhirtest.NewIdentity(t, "RequestGroup", "123", "abc"),
 		},
 	}
 	for _, tc := range testCases {

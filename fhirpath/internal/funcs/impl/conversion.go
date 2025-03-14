@@ -570,6 +570,44 @@ func ToTime(ctx *expr.Context, input system.Collection, args ...expr.Expression)
 	return system.Collection{}, nil
 }
 
+// Iif function is an immediate if/conditional operator
+// If the criterion expression evaluates to true, the result is the evaluation of the true expression.
+// If the criterion expression evaluates to false or is empty, the result is the evaluation of the false expression or
+// empty if the false expression is not provided.
+// FHIRPath docs here: https://hl7.org/fhirpath/N1/#iifcriterion-expression-true-result-collection-otherwise-result-collection-collection
+func Iif(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {
+	// Note for readability: criterion = args[0], true-result = args[1], otherwise-result = args[2]
+
+	// Argument validation
+	if len(args) < 2 || len(args) > 3 {
+		return nil, fmt.Errorf("%w: received %v arguments, expected 2 or 3", ErrWrongArity, len(args))
+	}
+
+	// Evaluate the criterion
+	criterionResult, err := args[0].Evaluate(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the criterion result to a boolean
+	criterionBool, err := criterionResult.ToBool()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if the criterion result is empty or false
+	if !criterionBool {
+		if len(args) != 3 {
+			return system.Collection{}, nil
+		}
+
+		return args[2].Evaluate(ctx, input)
+	}
+
+	// Return the true-result collection
+	return args[1].Evaluate(ctx, input)
+}
+
 func isValidUnitConversion(outputFormat string) bool {
 	validFormats := map[string]bool{
 		"years":   true,

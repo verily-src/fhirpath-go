@@ -3,8 +3,10 @@ package system_test
 import (
 	"testing"
 
+	"github.com/verily-src/fhirpath-go/internal/element/canonical"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
@@ -255,6 +257,44 @@ func TestCollection_ToInt32(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("ToInt32() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCollection_ToCanonical(t *testing.T) {
+	tests := []struct {
+		name    string
+		c       system.Collection
+		want    *dtpb.Canonical
+		wantErr bool
+	}{
+		{
+			name:    "errors if input is not a canonical",
+			c:       system.Collection{system.String("not canonical")},
+			wantErr: true,
+		},
+		{
+			name:    "errors if input length is more than 1",
+			c:       system.Collection{canonical.New("abc"), canonical.New("def")},
+			wantErr: true,
+		},
+		{
+			name:    "returns canonical if collection contains 1 canonical",
+			c:       system.Collection{canonical.New("abc")},
+			want:    canonical.New("abc"),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.c.ToCanonical()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ToCanonical() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(got, tt.want, protocmp.Transform()); diff != "" {
+				t.Errorf("ToCanonical() returned unexpected diff: (-want, +got):\n%s", diff)
 			}
 		})
 	}

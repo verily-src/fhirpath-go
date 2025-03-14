@@ -135,7 +135,12 @@ var baseTable = FunctionTable{
 	},
 	"union":   notImplemented,
 	"combine": notImplemented,
-	"iif":     notImplemented,
+	"iif": Function{
+		impl.Iif,
+		2,
+		3,
+		false,
+	},
 	"toBoolean": Function{
 		impl.ToBoolean,
 		0,
@@ -419,7 +424,8 @@ var experimentalTable = FunctionTable{
 // Clone returns a deep copy of the base
 // function table.
 func Clone() FunctionTable {
-	table := make(FunctionTable) // TODO: Optimize (PHP-6173)
+	// TODO(PHP-6173): Optimize
+	table := make(FunctionTable)
 	for k, v := range baseTable {
 		table[k] = v
 	}

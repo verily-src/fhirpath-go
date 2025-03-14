@@ -1,14 +1,17 @@
 package impl_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr/exprtest"
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
@@ -2106,6 +2109,135 @@ func TestToTime(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("ToTime() returned unexpected diff (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestIif(t *testing.T) {
+	testErr := errors.New("test error")
+	testCases := []struct {
+		name    string
+		input   system.Collection
+		args    []expr.Expression
+		want    system.Collection
+		wantErr error
+	}{
+		{
+			name:  "returns true result when criterion is true",
+			input: system.Collection{},
+			args: []expr.Expression{
+				exprtest.Return(system.Boolean(true)),
+				exprtest.Return(system.String("a")),
+			},
+			want: system.Collection{system.String("a")},
+		},
+		{
+			name:  "returns false result when criterion is false",
+			input: system.Collection{},
+			args: []expr.Expression{
+				exprtest.Return(system.Boolean(false)),
+				exprtest.Return(system.String("a")),
+				exprtest.Return(system.String("b")),
+			},
+			want: system.Collection{system.String("b")},
+		},
+		{
+			name:  "returns empty collection when criterion is false and no false result provided",
+			input: system.Collection{},
+			args: []expr.Expression{
+				exprtest.Return(system.Boolean(false)),
+				exprtest.Return(system.String("a")),
+			},
+			want: system.Collection{},
+		},
+		{
+			name: "returns true result when criterion evaluates to true",
+			input: system.Collection{
+				system.Integer(1),
+			},
+			args: []expr.Expression{
+				&expr.IsExpression{
+					Expr: &expr.IdentityExpression{},
+					Type: reflection.MustCreateTypeSpecifier("System", "Integer"),
+				},
+				exprtest.Return(system.String("Numbers")),
+				exprtest.Return(system.String("Not Numbers")),
+			},
+			want: system.Collection{system.String("Numbers")},
+		},
+		{
+			name: "returns false result when criterion evaluates to false",
+			input: system.Collection{
+				system.String("one"),
+			},
+			args: []expr.Expression{
+				&expr.IsExpression{
+					Expr: &expr.IdentityExpression{},
+					Type: reflection.MustCreateTypeSpecifier("System", "Integer"),
+				},
+				exprtest.Return(system.String("Numbers")),
+				exprtest.Return(system.String("Not Numbers")),
+			},
+			want: system.Collection{system.String("Not Numbers")},
+		},
+		{
+			name: "returns empty result when criterion evaluates to false and otherwise result is nil",
+			input: system.Collection{
+				system.String("one"),
+			},
+			args: []expr.Expression{
+				&expr.IsExpression{
+					Expr: &expr.IdentityExpression{},
+					Type: reflection.MustCreateTypeSpecifier("System", "Integer"),
+				},
+				exprtest.Return(system.String("Numbers")),
+			},
+			want: system.Collection{},
+		},
+		{
+			name:  "returns error if criterion expression raises error",
+			input: system.Collection{},
+			args: []expr.Expression{
+				exprtest.Error(testErr),
+				exprtest.Return(system.String("a")),
+				exprtest.Return(system.String("b")),
+			},
+			want:    nil,
+			wantErr: testErr,
+		},
+		{
+			name:  "returns error if args length is less than 2",
+			input: system.Collection{},
+			args: []expr.Expression{
+				exprtest.Return(system.Boolean(true)),
+			},
+			want:    nil,
+			wantErr: impl.ErrWrongArity,
+		},
+		{
+			name:  "returns error if args length is more than 3",
+			input: system.Collection{},
+			args: []expr.Expression{
+				exprtest.Return(system.Boolean(true)),
+				exprtest.Return(system.String("a")),
+				exprtest.Return(system.String("b")),
+				exprtest.Return(system.String("c")),
+			},
+			want:    nil,
+			wantErr: impl.ErrWrongArity,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := impl.Iif(&expr.Context{}, tc.input, tc.args...)
+
+			if got, want := err, tc.wantErr; !cmp.Equal(got, want, cmpopts.EquateErrors()) {
+				t.Fatalf("Iif() error = %v, want error %v", err, tc.wantErr)
+			}
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("Iif() returned unexpected diff (-want, +got)\n%s", diff)
 			}
 		})
 	}

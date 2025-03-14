@@ -146,6 +146,7 @@ func TestTimeToTime_ValidInput_ReturnsTime(t *testing.T) {
 		{"UTC", "UTC", time.UTC},
 		{"EST", "EST", loadLocation(t, "EST")},
 		{"Z", "Z", time.UTC},
+		{"Local", "Local", time.Local},
 		{"SmallPositiveOffset", "+00:01", time.FixedZone("", 60)},
 		{"SmallNegativeOffset", "-00:02", time.FixedZone("", -120)},
 		{"LargePositiveOffset", "+12:03", time.FixedZone("", 43380)},
