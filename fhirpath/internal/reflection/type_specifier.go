@@ -104,28 +104,27 @@ func (ts TypeSpecifier) parent() TypeSpecifier {
 	if ts.namespace == System {
 		return TypeSpecifier{"System", "Any"}
 	}
+
 	switch ts.typeName {
 	case "code", "markdown", "id":
-		return TypeSpecifier{FHIR, "string"}
+		return TypeSpecifier{ts.namespace, "string"}
 	case "unsignedInt", "positiveInt":
-		return TypeSpecifier{FHIR, "integer"}
+		return TypeSpecifier{ts.namespace, "integer"}
 	case "url", "canonical", "uuid", "oid":
-		return TypeSpecifier{FHIR, "uri"}
+		return TypeSpecifier{ts.namespace, "uri"}
 	case "Duration", "MoneyQuantity", "Age", "Count", "Distance", "SimpleQuantity":
-		return TypeSpecifier{FHIR, "Quantity"}
+		return TypeSpecifier{ts.namespace, "Quantity"}
 	case "Timing", "Dosage", "ElementDefinition":
-		return TypeSpecifier{FHIR, "BackboneElement"}
+		return TypeSpecifier{ts.namespace, "BackboneElement"}
 	case "Bundle", "Binary", "Parameters", "DomainResource":
-		return TypeSpecifier{FHIR, "Resource"}
-	case "Element":
-		return ts
-	case "Resource":
+		return TypeSpecifier{ts.namespace, "Resource"}
+	case "Element", "Resource":
 		return ts
 	default:
 		if IsValidFHIRPathElement(ts.typeName) {
-			return TypeSpecifier{FHIR, "Element"}
+			return TypeSpecifier{ts.namespace, "Element"}
 		}
-		return TypeSpecifier{FHIR, "DomainResource"}
+		return TypeSpecifier{ts.namespace, "DomainResource"}
 	}
 }
 

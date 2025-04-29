@@ -46,7 +46,7 @@ func Canonical(resourceType resource.Type, reference string) (*dtpb.Reference, e
 
 // Weak creates an weak reference for the given resource type and
 // raw reference. The resource type must be a valid FHIR resource type.
-// Generally, it is preferred to use Canonoical() for Canonical references.
+// Generally, it is preferred to use Canonical() for Canonical references.
 // Examples:
 //
 //	{

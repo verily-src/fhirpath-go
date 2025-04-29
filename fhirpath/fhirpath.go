@@ -20,6 +20,10 @@ var (
 	ErrExistingConstant = evalopts.ErrExistingConstant
 )
 
+// Resource is a FHIR resource. This is an alias for the
+// fhir.Resource type, which is the base type for all FHIR resources.
+type Resource = fhir.Resource
+
 // Expression is the FHIRPath expression that will be compiled from a FHIRPath string
 type Expression struct {
 	expression expr.Expression
@@ -78,7 +82,7 @@ func MustCompile(expr string, opts ...CompileOption) *Expression {
 }
 
 // Evaluate the expression, returning either a collection of elements, or error
-func (e *Expression) Evaluate(input []fhir.Resource, options ...EvaluateOption) (system.Collection, error) {
+func (e *Expression) Evaluate(input []Resource, options ...EvaluateOption) (system.Collection, error) {
 	config := &opts.EvaluateConfig{
 		Context: expr.InitializeContext(slices.MustConvert[any](input)),
 	}
@@ -92,7 +96,7 @@ func (e *Expression) Evaluate(input []fhir.Resource, options ...EvaluateOption) 
 }
 
 // EvaluateAsString evaluates the expression, returning a string or error
-func (e *Expression) EvaluateAsString(input []fhir.Resource, options ...EvaluateOption) (string, error) {
+func (e *Expression) EvaluateAsString(input []Resource, options ...EvaluateOption) (string, error) {
 	got, err := e.Evaluate(input, options...)
 	if err != nil {
 		return "", err
@@ -101,7 +105,7 @@ func (e *Expression) EvaluateAsString(input []fhir.Resource, options ...Evaluate
 }
 
 // EvaluateAsBool evaluates the expression, returning either a boolean or error
-func (e *Expression) EvaluateAsBool(input []fhir.Resource, options ...EvaluateOption) (bool, error) {
+func (e *Expression) EvaluateAsBool(input []Resource, options ...EvaluateOption) (bool, error) {
 	got, err := e.Evaluate(input, options...)
 	if err != nil {
 		return false, err
@@ -110,7 +114,7 @@ func (e *Expression) EvaluateAsBool(input []fhir.Resource, options ...EvaluateOp
 }
 
 // EvaluateAsInt32 evaluates the expression, returning either an int32 or error
-func (e *Expression) EvaluateAsInt32(input []fhir.Resource, options ...EvaluateOption) (int32, error) {
+func (e *Expression) EvaluateAsInt32(input []Resource, options ...EvaluateOption) (int32, error) {
 	got, err := e.Evaluate(input, options...)
 	if err != nil {
 		return 0, err
@@ -119,7 +123,7 @@ func (e *Expression) EvaluateAsInt32(input []fhir.Resource, options ...EvaluateO
 }
 
 // EvaluateAsCanonical evaluates the expression, returning a FHIR canonical or error
-func (e *Expression) EvaluateAsCanonical(input []fhir.Resource, options ...EvaluateOption) (*dtpb.Canonical, error) {
+func (e *Expression) EvaluateAsCanonical(input []Resource, options ...EvaluateOption) (*dtpb.Canonical, error) {
 	got, err := e.Evaluate(input, options...)
 	if err != nil {
 		return nil, err

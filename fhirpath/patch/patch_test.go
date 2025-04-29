@@ -35,9 +35,9 @@ func TestAdd_ValidInputs_ModifiesResource(t *testing.T) {
 		name  string
 		path  string
 		field string
-		input fhir.Resource
+		input fhirpath.Resource
 		value fhir.Base
-		want  fhir.Resource
+		want  fhirpath.Resource
 	}{
 		{
 			name:  "Adds scalar field",
@@ -272,7 +272,7 @@ func TestAdd_InvalidInputs(t *testing.T) {
 		name    string
 		path    string
 		field   string
-		input   fhir.Resource
+		input   fhirpath.Resource
 		value   fhir.Base
 		wantErr error
 	}{
@@ -410,9 +410,9 @@ func TestAdd_InvalidInputs(t *testing.T) {
 func TestDelete(t *testing.T) {
 	testCases := []struct {
 		name string
-		res  fhir.Resource
+		res  fhirpath.Resource
 		path string
-		want fhir.Resource
+		want fhirpath.Resource
 	}{
 		{
 			name: "Deletes scalar field",
@@ -500,7 +500,7 @@ func TestDelete(t *testing.T) {
 func TestDelete_BadInput_ReturnsError(t *testing.T) {
 	testCases := []struct {
 		name    string
-		res     fhir.Resource
+		res     fhirpath.Resource
 		path    string
 		wantErr error
 	}{
@@ -556,11 +556,11 @@ func TestDelete_BadInput_ReturnsError(t *testing.T) {
 func TestInsert(t *testing.T) {
 	testCases := []struct {
 		name  string
-		res   fhir.Resource
+		res   fhirpath.Resource
 		path  string
 		value fhir.Base
 		index int
-		want  fhir.Resource
+		want  fhirpath.Resource
 	}{
 		{
 			name: "Inserts name at beginning",
@@ -621,7 +621,7 @@ func TestInsert(t *testing.T) {
 func TestInsert_InvalidCondition_ReturnsError(t *testing.T) {
 	testCases := []struct {
 		name    string
-		res     fhir.Resource
+		res     fhirpath.Resource
 		path    string
 		value   fhir.Base
 		index   int
@@ -756,11 +756,11 @@ func TestInsert_InvalidCondition_ReturnsError(t *testing.T) {
 func TestMove(t *testing.T) {
 	testCases := []struct {
 		name     string
-		res      fhir.Resource
+		res      fhirpath.Resource
 		path     string
 		srcIndex int
 		dstIndex int
-		wantRes  fhir.Resource
+		wantRes  fhirpath.Resource
 		wantErr  error
 	}{
 		{
@@ -788,7 +788,7 @@ func TestMove(t *testing.T) {
 				t.Fatalf("Move(%s): error got = %v, want = %v", tc.name, got, want)
 			}
 
-			got, want := fhir.Resource(nil), tc.wantRes
+			got, want := fhirpath.Resource(nil), tc.wantRes
 			if diff := cmp.Diff(got, want, protocmp.Transform()); diff != "" {
 				t.Errorf("Move(%s): (-got +want):\n%v", tc.name, diff)
 			}
@@ -802,10 +802,10 @@ func TestReplace(t *testing.T) {
 
 	testCases := []struct {
 		name    string
-		res     fhir.Resource
+		res     fhirpath.Resource
 		path    string
 		value   fhir.Base
-		wantRes fhir.Resource
+		wantRes fhirpath.Resource
 	}{
 		{
 			"Replaces scalar field",
@@ -1071,7 +1071,7 @@ func TestReplace(t *testing.T) {
 func TestReplace_InvalidCondition_ReturnsError(t *testing.T) {
 	testCases := []struct {
 		name    string
-		res     fhir.Resource
+		res     fhirpath.Resource
 		path    string
 		value   fhir.Base
 		wantErr error

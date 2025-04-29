@@ -7,6 +7,7 @@ import (
 
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	"github.com/google/go-cmp/cmp"
+	"github.com/verily-src/fhirpath-go/fhirpath"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr/exprtest"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs"
@@ -29,7 +30,7 @@ func TestToFunction_EvaluatesCorrectly(t *testing.T) {
 			}
 			return result, nil
 		},
-		"findResource": func(input system.Collection, resource fhir.Resource) (system.Collection, error) {
+		"findResource": func(input system.Collection, resource fhirpath.Resource) (system.Collection, error) {
 			for i, elem := range input {
 				if reflect.DeepEqual(elem, resource) {
 					return system.Collection{system.Integer(i)}, nil

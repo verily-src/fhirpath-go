@@ -229,6 +229,7 @@ func (d Date) getComponents() []int {
 	}
 }
 
+// ToDateTime converts a Date to a DateTime, preserving the precision of the original Date.
 func (d Date) ToDateTime() DateTime {
 	var dateToDateTime = map[layout]layout{
 		dayLayout:   dtDayLayout,

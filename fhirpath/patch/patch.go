@@ -111,7 +111,7 @@ func Compile(path string, options ...opts.CompileOption) (*Expression, error) {
 //     set, etc.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func (e *Expression) Add(res fhir.Resource, name string, value fhir.Base, options ...fhirpath.EvaluateOption) error {
+func (e *Expression) Add(res fhirpath.Resource, name string, value fhir.Base, options ...fhirpath.EvaluateOption) error {
 	if strcase.ToLowerCamel(name) != name {
 		// All field names in FHIRPath are in camelCase, but the protos are in
 		// snake_case. To avoid accidentally accepting code like "foo_value" instead
@@ -256,7 +256,7 @@ func (e *Expression) normalizeAdd(valueMessage protoreflect.Message, value fhir.
 	return value, nil
 }
 
-func (e *Expression) evaluate(res fhir.Resource, options ...fhirpath.EvaluateOption) (*expr.Context, system.Collection, error) {
+func (e *Expression) evaluate(res fhirpath.Resource, options ...fhirpath.EvaluateOption) (*expr.Context, system.Collection, error) {
 	collection := system.Collection{res}
 	config := &opts.EvaluateConfig{
 		Context: expr.InitializeContext(collection),
@@ -296,7 +296,7 @@ func (e *Expression) newSetOneof(msg protoreflect.Message, value proto.Message) 
 // single elements from a resource.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func (e *Expression) Delete(res fhir.Resource, options ...fhirpath.EvaluateOption) error {
+func (e *Expression) Delete(res fhirpath.Resource, options ...fhirpath.EvaluateOption) error {
 	if res == nil {
 		return fmt.Errorf("%w: nil input resource", ErrInvalidInput)
 	}
@@ -369,7 +369,7 @@ func (e *Expression) tryDelete(collection system.Collection, toDelete any) error
 // Prefer Add() if you are inserting at the end of a list.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func (e *Expression) Insert(res fhir.Resource, value fhir.Base, index int, options ...fhirpath.EvaluateOption) error {
+func (e *Expression) Insert(res fhirpath.Resource, value fhir.Base, index int, options ...fhirpath.EvaluateOption) error {
 	if res == nil {
 		return fmt.Errorf("%w: nil input resource", ErrInvalidInput)
 	}
@@ -464,14 +464,14 @@ func (e *Expression) getFieldForCollection(root proto.Message, collection system
 // Move moves an element within the expression's list from one index to another.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func (e *Expression) Move(resource fhir.Resource, sourceIndex, destIndex int, options ...fhirpath.EvaluateOption) error {
+func (e *Expression) Move(resource fhirpath.Resource, sourceIndex, destIndex int, options ...fhirpath.EvaluateOption) error {
 	return ErrNotImplemented
 }
 
 // Replace replaces the original value of the expression with the provided value.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func (e *Expression) Replace(resource fhir.Resource, value fhir.Base, options ...fhirpath.EvaluateOption) error {
+func (e *Expression) Replace(resource fhirpath.Resource, value fhir.Base, options ...fhirpath.EvaluateOption) error {
 	if resource == nil {
 		return fmt.Errorf("%w: nil input resource", ErrInvalidInput)
 	}
@@ -603,7 +603,7 @@ func (e *Expression) unwrapOneof(obj proto.Message) proto.Message {
 // Add can be used for non-repeating elements so long as they do not already exist.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func Add(resource fhir.Resource, path, name string, value fhir.Base, opts *Options) error {
+func Add(resource fhirpath.Resource, path, name string, value fhir.Base, opts *Options) error {
 	expr, err := Compile(path, opts.CompileOpts...)
 	if err != nil {
 		return err
@@ -615,7 +615,7 @@ func Add(resource fhir.Resource, path, name string, value fhir.Base, opts *Optio
 // single elements from a resource.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func Delete(resource fhir.Resource, path string, options ...opts.CompileOption) error {
+func Delete(resource fhirpath.Resource, path string, options ...opts.CompileOption) error {
 	expr, err := Compile(path, options...)
 	if err != nil {
 		return err
@@ -627,7 +627,7 @@ func Delete(resource fhir.Resource, path string, options ...opts.CompileOption) 
 // Prefer Add() if you are inserting at the end of a list.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func Insert(resource fhir.Resource, path string, value fhir.Base, index int, options ...opts.CompileOption) error {
+func Insert(resource fhirpath.Resource, path string, value fhir.Base, index int, options ...opts.CompileOption) error {
 	expr, err := Compile(path, options...)
 	if err != nil {
 		return err
@@ -638,7 +638,7 @@ func Insert(resource fhir.Resource, path string, value fhir.Base, index int, opt
 // Move moves an element within the specified list from one index to another.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func Move(resource fhir.Resource, path string, sourceIndex, destIndex int, options ...opts.CompileOption) error {
+func Move(resource fhirpath.Resource, path string, sourceIndex, destIndex int, options ...opts.CompileOption) error {
 	expr, err := Compile(path, options...)
 	if err != nil {
 		return err
@@ -649,7 +649,7 @@ func Move(resource fhir.Resource, path string, sourceIndex, destIndex int, optio
 // Replace replaces the original value at the specified path with the provided value.
 //
 // See documentation: https://hl7.org/fhir/R4/fhirpatch.html#concept.
-func Replace(resource fhir.Resource, path string, value fhir.Base, options ...opts.CompileOption) error {
+func Replace(resource fhirpath.Resource, path string, value fhir.Base, options ...opts.CompileOption) error {
 	expr, err := Compile(path, options...)
 	if err != nil {
 		return err
