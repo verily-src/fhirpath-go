@@ -30,7 +30,7 @@ if err != nil {
 The compilation result can then be run against a resource:
 
 ```go
-inputResources := []fhir.Resource{somePatient, someMedication}
+inputResources := []fhirpath.Resource{somePatient, someMedication}
 
 result, err := expression.Evaluate(inputResources)
 if err != nil {
@@ -74,7 +74,7 @@ The constraints on external constants are as follows:
 
 ```go
 customVar := system.String("custom variable")
-result, err := expression.Evaluate([]fhir.Resource{someResource}, evalopts.EnvVariable("var", customVar))
+result, err := expression.Evaluate([]fhirpath.Resource{someResource}, evalopts.EnvVariable("var", customVar))
 ```
 
 ### System Types

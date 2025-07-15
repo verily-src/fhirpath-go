@@ -230,3 +230,17 @@ func updateExtensionsIn(ext fhir.Extendable, get protofields.FieldToValueFunc, e
 	}
 	message.Set(field, protoreflect.ValueOfList(extensionsList))
 }
+
+// FindByURL returns all extensions whose URL matches the specified system.
+// If no matching extensions are found, this returns an empty slice.
+func FindByURL(extensions []*dtpb.Extension, url string) []*dtpb.Extension {
+	var matches []*dtpb.Extension
+
+	for _, ext := range extensions {
+		if ext.GetUrl().GetValue() == url {
+			matches = append(matches, ext)
+		}
+	}
+
+	return matches
+}

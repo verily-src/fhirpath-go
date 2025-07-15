@@ -10,7 +10,9 @@ import (
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 )
 
-var ErrInvalidRegex = errors.New("invalid regex")
+var (
+	ErrInvalidRegex = errors.New("invalid regex")
+)
 
 // StartsWith returns true if the input string starts with the given prefix.
 func StartsWith(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {

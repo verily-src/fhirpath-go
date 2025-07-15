@@ -3,6 +3,7 @@ package expr
 import (
 	"time"
 
+	"github.com/verily-src/fhirpath-go/fhirpath/resolver"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 )
 
@@ -23,6 +24,10 @@ type Context struct {
 	// the 'LastResult' will be the unwrapped list from 'given', but we need the
 	// 'name' element that contains the 'given' list in order to alter the list.
 	BeforeLastResult system.Collection
+
+	// Resolver is an optional mechanism for resolving FHIR Resources that
+	// is used in the 'resolve()' FHIRPath function.
+	Resolver resolver.Resolver
 }
 
 // Clone copies this Context object to produce a new instance.
@@ -31,6 +36,7 @@ func (c *Context) Clone() *Context {
 		Now:               c.Now,
 		ExternalConstants: c.ExternalConstants,
 		LastResult:        c.LastResult,
+		Resolver:          c.Resolver,
 	}
 }
 

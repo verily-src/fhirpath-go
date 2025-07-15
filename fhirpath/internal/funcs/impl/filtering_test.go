@@ -112,3 +112,80 @@ func TestWhere_RaisesError(t *testing.T) {
 		})
 	}
 }
+
+func TestOfType_Evaluates(t *testing.T) {
+	testCases := []struct {
+		name            string
+		inputCollection system.Collection
+		inputArgs       expr.Expression
+		wantCollection  system.Collection
+	}{
+		{
+			name:            "filter on base node",
+			inputCollection: slices.MustConvert[any](contact),
+			inputArgs:       &expr.TypeExpression{Type: "FHIR.ContactDetail"},
+			wantCollection:  slices.MustConvert[any](contact),
+		},
+		{
+			name:            "filter on base node without namespace",
+			inputCollection: slices.MustConvert[any](contact[0:3]),
+			inputArgs:       &expr.TypeExpression{Type: "ContactDetail"},
+			wantCollection:  slices.MustConvert[any](contact),
+		},
+		{
+			name:            "returns empty collection",
+			inputCollection: slices.MustConvert[any](contact[0:2]),
+			inputArgs:       &expr.TypeExpression{Type: "string"},
+			wantCollection:  system.Collection{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := impl.OfType(&expr.Context{}, tc.inputCollection, tc.inputArgs)
+			if err != nil {
+				t.Fatalf("OfType function returned unexpected error: %v", err)
+			}
+			if diff := cmp.Diff(tc.wantCollection, got, protocmp.Transform()); diff != "" {
+				t.Errorf("OfType function returned unexpected diff (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestOfType_RaisesError(t *testing.T) {
+	testCases := []struct {
+		name            string
+		inputArgs       []expr.Expression
+		inputCollection system.Collection
+	}{
+		{
+			name:            "multiple arguments",
+			inputArgs:       []expr.Expression{exprtest.Return(1), exprtest.Return(1)},
+			inputCollection: slices.MustConvert[any](contact),
+		},
+		{
+			name:            "argument expression raises error",
+			inputArgs:       []expr.Expression{exprtest.Error(errors.New("some error"))},
+			inputCollection: slices.MustConvert[any](contact),
+		},
+		{
+			name:            "invalid argument expression",
+			inputArgs:       []expr.Expression{exprtest.Return(1, 2)},
+			inputCollection: slices.MustConvert[any](contact),
+		},
+		{
+			name:            "invalid type",
+			inputArgs:       []expr.Expression{&expr.TypeExpression{Type: "foo"}},
+			inputCollection: slices.MustConvert[any](contact),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := impl.OfType(&expr.Context{}, tc.inputCollection, tc.inputArgs...); err == nil {
+				t.Fatalf("evaluating OfType function didn't return error when expected")
+			}
+		})
+	}
+}

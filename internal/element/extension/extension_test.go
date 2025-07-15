@@ -444,3 +444,71 @@ func TestClear_ResourceHasExtensions_RemovesExtensions(t *testing.T) {
 		})
 	}
 }
+
+func TestFindByURL(t *testing.T) {
+	const (
+		urlA = "http://example.com/extA"
+		urlB = "http://example.com/extB"
+	)
+	extA := extension.New(urlA, fhir.String("valueA"))
+	extB := extension.New(urlB, fhir.String("valueB"))
+
+	testCases := []struct {
+		name       string
+		extensions []*dtpb.Extension
+		system     string
+		want       []*dtpb.Extension
+	}{
+		{
+			name:       "nil slice",
+			extensions: nil,
+			system:     urlA,
+			want:       [](*dtpb.Extension)(nil),
+		},
+		{
+			name:       "empty slice",
+			extensions: []*dtpb.Extension{},
+			system:     urlA,
+			want:       [](*dtpb.Extension)(nil),
+		},
+		{
+			name:       "no match",
+			extensions: []*dtpb.Extension{extA},
+			system:     urlB,
+			want:       [](*dtpb.Extension)(nil),
+		},
+		{
+			name:       "single match",
+			extensions: []*dtpb.Extension{extA},
+			system:     urlA,
+			want:       []*dtpb.Extension{extA},
+		},
+		{
+			name:       "multiple extensions, match is first",
+			extensions: []*dtpb.Extension{extA, extB},
+			system:     urlA,
+			want:       []*dtpb.Extension{extA},
+		},
+		{
+			name:       "multiple extensions, contains match",
+			extensions: []*dtpb.Extension{extB, extA},
+			system:     urlA,
+			want:       []*dtpb.Extension{extA},
+		},
+		{
+			name:       "multiple matches",
+			extensions: []*dtpb.Extension{extA, extB, extA},
+			system:     urlA,
+			want:       []*dtpb.Extension{extA, extA},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := extension.FindByURL(tc.extensions, tc.system)
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("FindByURL(%s): diff (-want,+got):\n%s", tc.name, diff)
+			}
+		})
+	}
+}

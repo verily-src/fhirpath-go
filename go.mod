@@ -12,8 +12,8 @@ require (
 	github.com/iancoleman/strcase v0.3.0
 	github.com/mattbaird/jsonpatch v0.0.0-20230413205102-771768614e91
 	github.com/shopspring/decimal v1.3.1
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-	google.golang.org/protobuf v1.36.3
+	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
@@ -25,6 +25,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/serenize/snaker v0.0.0-20201027110005-a7ad2135616e // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 )

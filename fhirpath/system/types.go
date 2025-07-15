@@ -12,7 +12,9 @@ import (
 	"github.com/verily-src/fhirpath-go/internal/protofields"
 )
 
-var ErrCantBeCast = errors.New("value can't be cast to system type")
+var (
+	ErrCantBeCast = errors.New("value can't be cast to system type")
+)
 
 // Any is the root abstraction for all FHIRPath system types.
 type Any interface {

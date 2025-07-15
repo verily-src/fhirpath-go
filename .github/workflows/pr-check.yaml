@@ -15,8 +15,8 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   MESSAGE: >
     Thank you for your interest in this project! At this moment, we are not currently accepting community contributions in the form of PRs.
-    If you would like to make a proposal, 
-    we will do our best to review it, implement it ourselves, and include it in the next release. 
+    If you would like to make a proposal,
+    we will do our best to review it, implement it ourselves, and include it in the next release.
     If enough proposals come through, we will certainly revisit this policy to make the package as useful as possible.
     [Contribution Guidelines](https://github.com/verily-src/fhirpath-go/CONTRIBUTING.md).
 
@@ -33,7 +33,7 @@ jobs:
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           body="${PR_AUTHOR}"
-          body=$(echo "${body}" | sed -E -e '/OliverCardoza|bitwizeshift|VickSuresh|assefamaru|jonhayesverily|alexlaurinmath|Copybara/!d')
+          body=$(echo "${body}" | sed -E -e '/OliverCardoza|bitwizeshift|VickSuresh|assefamaru|jonhayesverily|alexlaurinmath|AlexJSully|Copybara/!d')
 
           if [ -z "$body"]; then
             echo "status=failure" >> "${GITHUB_OUTPUT}"
@@ -68,4 +68,3 @@ jobs:
         continue-on-error: true
         run: |
           gh pr comment "${{ env.PR_URL }}" -b "${{ env.AUTHOR }} ${{ env.MESSAGE }}"
-

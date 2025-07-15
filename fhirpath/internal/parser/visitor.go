@@ -250,9 +250,9 @@ func (v *FHIRPathVisitor) VisitEqualityExpression(ctx *grammar.EqualityExpressio
 	case expr.NotEquals:
 		expression = &expr.EqualityExpression{Left: leftResult.Result, Right: rightResult.Result, Not: true}
 	case expr.Equivalence:
-		// TODO (PHP-5889): Implement equivalence expressions
+		// TODO : Implement equivalence expressions
 	case expr.Inequivalence:
-		// TODO (PHP-5889): Implement non-equivalence expressions
+		// TODO : Implement non-equivalence expressions
 	}
 	return v.transformedVisitResult(expression)
 }
@@ -450,10 +450,40 @@ func (v *FHIRPathVisitor) VisitTotalInvocation(ctx *grammar.TotalInvocationConte
 }
 
 func (v *FHIRPathVisitor) VisitFunction(ctx *grammar.FunctionContext) interface{} {
-	ident := ctx.Identifier().GetText()
-	fn, ok := v.Functions[ident]
-	if !ok {
-		return &VisitResult{nil, fmt.Errorf("%w: %s", errUnresolvedFunction, ident)}
+	var fn funcs.Function
+	if ctx.Identifier() == nil {
+		fn = v.Functions["ofType"]
+	} else {
+		var ok bool
+		fn, ok = v.Functions[ctx.Identifier().GetText()]
+		if !ok {
+			return &VisitResult{nil, fmt.Errorf("%w: %s", errUnresolvedFunction, ctx.Identifier().GetText())}
+		}
+	}
+
+	// Handling for type functions
+	if fn.IsTypeFunction {
+		paramList := ctx.ParamList()
+		if paramList == nil || len(paramList.AllExpression()) != 1 {
+			return &VisitResult{nil, fmt.Errorf("type function expects exactly one argument")}
+		}
+
+		// Visit the first argument as a type specifier
+		typeExpr := paramList.Expression(0)
+		// This gets the string, e.g. "string" or "FHIR.Patient"
+		typeName := typeExpr.GetText()
+
+		typeSpecifier, err := reflection.NewTypeSpecifier(typeName)
+		if err != nil {
+			return &VisitResult{nil, err}
+		}
+
+		return v.transformedVisitResult(
+			&expr.FunctionExpression{
+				Fn:   fn.Func,
+				Args: []expr.Expression{&expr.TypeExpression{Type: typeSpecifier.String()}},
+			},
+		)
 	}
 
 	results := []*VisitResult{}

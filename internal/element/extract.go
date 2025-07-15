@@ -181,7 +181,7 @@ func computeFHIRPathOfProtoPath(p protopath.Path) (string, error) {
 			cfn := string(fd.ContainingMessage().FullName())
 			if cfn == "google.fhir.r4.core.ContainedResource" {
 				// Only elements of Resource have well defined FHIRpath within
-				// Bundle.entry.resource. See PHP-8862. Punt on this for now.
+				// Bundle.entry.resource. See ticket. Punt on this for now.
 				return "", fmt.Errorf("%w: for %s", ErrFhirPathNotImplemented, cfn)
 			}
 			elementName := fd.JSONName()

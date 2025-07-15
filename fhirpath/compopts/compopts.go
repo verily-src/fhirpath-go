@@ -14,7 +14,9 @@ import (
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/parser"
 )
 
-var ErrMultipleTransforms = errors.New("multiple transforms provided")
+var (
+	ErrMultipleTransforms = errors.New("multiple transforms provided")
+)
 
 // AddFunction creates a CompileOption that will register a custom FHIRPath
 // function that can be called during evaluation with the given name.

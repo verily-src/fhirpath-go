@@ -89,7 +89,12 @@ var baseTable = FunctionTable{
 		false,
 	},
 	"repeat": notImplemented,
-	"ofType": notImplemented,
+	"ofType": Function{
+		impl.OfType,
+		1,
+		1,
+		true,
+	},
 	"single": notImplemented,
 	"first": Function{
 		impl.First,
@@ -133,8 +138,13 @@ var baseTable = FunctionTable{
 		1,
 		false,
 	},
-	"union":   notImplemented,
-	"combine": notImplemented,
+	"union": notImplemented,
+	"combine": Function{
+		impl.Combine,
+		0,
+		1,
+		false,
+	},
 	"iif": Function{
 		impl.Iif,
 		2,
@@ -406,6 +416,12 @@ var baseTable = FunctionTable{
 		0,
 		false,
 	},
+	"resolve": Function{
+		impl.Resolve,
+		0,
+		0,
+		false,
+	},
 }
 
 // ExperimentalTable holds the mapping of all
@@ -424,7 +440,7 @@ var experimentalTable = FunctionTable{
 // Clone returns a deep copy of the base
 // function table.
 func Clone() FunctionTable {
-	// TODO(PHP-6173): Optimize
+	// TODO: Optimize
 	table := make(FunctionTable)
 	for k, v := range baseTable {
 		table[k] = v

@@ -63,7 +63,7 @@ func ParseString(input string) (String, error) {
 		"\\f", "\f",
 		"\\\\", "\\",
 		"\\", "",
-		// TODO PHP-5581
+		// TODO: Add support for unicode escape sequences.
 	}
 	input = strings.TrimPrefix(input, "'")
 	input = strings.TrimSuffix(input, "'")

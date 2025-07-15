@@ -198,7 +198,7 @@ func Quantity(value float64, unit string) *dtpb.Quantity {
 // value and UCUM unit.
 //
 // See: http://hl7.org/fhir/R4/datatypes.html#quantity
-// TODO(PHP-9521): Add a unit package to validate against UCUM units.
+// TODO: Add a unit package to validate against UCUM units.
 func UCUMQuantity(value float64, unit string) *dtpb.Quantity {
 	return &dtpb.Quantity{
 		Value:  Decimal(value),

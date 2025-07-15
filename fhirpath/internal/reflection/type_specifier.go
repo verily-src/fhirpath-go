@@ -3,6 +3,7 @@ package reflection
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
@@ -45,6 +46,10 @@ func NewQualifiedTypeSpecifier(namespace string, typeName string) (TypeSpecifier
 // is inferred with the priority rules of FHIRPath. Returns an error if the typeName cannot
 // be resolved.
 func NewTypeSpecifier(typeName string) (TypeSpecifier, error) {
+	if parts := strings.Split(typeName, "."); len(parts) == 2 {
+		return NewQualifiedTypeSpecifier(parts[0], parts[1])
+	}
+
 	if IsValidFHIRPathElement(typeName) || protofields.IsValidResourceType(typeName) || isBaseType(typeName) {
 		return TypeSpecifier{FHIR, typeName}, nil
 	}
@@ -72,6 +77,15 @@ func TypeOf(input any) (TypeSpecifier, error) {
 		return TypeSpecifier{FHIR, "code"}, nil
 	}
 	return TypeSpecifier{FHIR, primitiveToLowercase(name)}, nil
+}
+
+// String returns a string representation of the type specifier in the format:
+// <namespace>.<type>
+func (ts TypeSpecifier) String() string {
+	if ts.namespace != "" {
+		return ts.namespace + "." + ts.typeName
+	}
+	return ts.typeName
 }
 
 // Is returns a boolean representing whether or not the receiver type is equivalent to the

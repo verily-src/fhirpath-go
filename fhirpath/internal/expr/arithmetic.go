@@ -95,7 +95,8 @@ func EvaluateMul(lhs, rhs system.Any) (system.Any, error) {
 			return left.Mul(right)
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement multiplication with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(Mul, lhs, rhs)
 	case system.Decimal:
@@ -103,11 +104,13 @@ func EvaluateMul(lhs, rhs system.Any) (system.Any, error) {
 			return left.Mul(right), nil
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement multiplication with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(Mul, lhs, rhs)
 	case system.Quantity:
-		return nil, fmt.Errorf("%w: PHP-7171", ErrToBeImplemented)
+		// TODO: Implement support for multiplication with Quantity.
+		return nil, ErrToBeImplemented
 	default:
 		return nil, typeMismatch(Mul, lhs, rhs)
 	}
@@ -121,7 +124,8 @@ func EvaluateDiv(lhs, rhs system.Any) (system.Any, error) {
 			return left.Div(right), nil
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement division with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(Div, lhs, rhs)
 	case system.Decimal:
@@ -129,11 +133,13 @@ func EvaluateDiv(lhs, rhs system.Any) (system.Any, error) {
 			return left.Div(right), nil
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement division with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(Div, lhs, rhs)
 	case system.Quantity:
-		return nil, fmt.Errorf("%w: PHP-7171", ErrToBeImplemented)
+		// TODO: Implement support for division with Quantity.
+		return nil, ErrToBeImplemented
 	default:
 		return nil, typeMismatch(Div, lhs, rhs)
 	}
@@ -147,7 +153,8 @@ func EvaluateFloorDiv(lhs, rhs system.Any) (system.Any, error) {
 			return left.FloorDiv(right), nil
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement floor division with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(FloorDiv, lhs, rhs)
 	case system.Decimal:
@@ -155,11 +162,13 @@ func EvaluateFloorDiv(lhs, rhs system.Any) (system.Any, error) {
 			return left.FloorDiv(right)
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement floor division with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(FloorDiv, lhs, rhs)
 	case system.Quantity:
-		return nil, fmt.Errorf("%w: PHP-7171", ErrToBeImplemented)
+		// TODO: Implement support for floor division with Quantity.
+		return nil, ErrToBeImplemented
 	default:
 		return nil, typeMismatch(FloorDiv, lhs, rhs)
 	}
@@ -173,7 +182,8 @@ func EvaluateMod(lhs, rhs system.Any) (system.Any, error) {
 			return left.Mod(right), nil
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement modulus with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(Mod, lhs, rhs)
 	case system.Decimal:
@@ -181,11 +191,13 @@ func EvaluateMod(lhs, rhs system.Any) (system.Any, error) {
 			return left.Mod(right), nil
 		}
 		if _, ok := rhs.(system.Quantity); ok {
-			return nil, fmt.Errorf("%w: PHP-7340", ErrToBeImplemented)
+			// TODO: Implement modulus with Quantity.
+			return nil, ErrToBeImplemented
 		}
 		return nil, typeMismatch(Mod, lhs, rhs)
 	case system.Quantity:
-		return nil, fmt.Errorf("%w: PHP-7171", ErrToBeImplemented)
+		// TODO: Implement support for modulus with Quantity.
+		return nil, ErrToBeImplemented
 	default:
 		return nil, typeMismatch(Mod, lhs, rhs)
 	}

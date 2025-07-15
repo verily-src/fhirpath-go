@@ -21,6 +21,8 @@ import (
 	"github.com/verily-src/fhirpath-go/fhirpath"
 	"github.com/verily-src/fhirpath-go/fhirpath/compopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/evalopts"
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
+	"github.com/verily-src/fhirpath-go/fhirpath/resolver/resolvertest"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 	"github.com/verily-src/fhirpath-go/internal/element/extension"
 	"github.com/verily-src/fhirpath-go/internal/element/reference"
@@ -34,6 +36,7 @@ type evaluateTestCase struct {
 	inputPath       string
 	inputCollection []fhirpath.Resource
 	wantCollection  system.Collection
+	wantErr         error
 	compileOptions  []fhirpath.CompileOption
 	evaluateOptions []fhirpath.EvaluateOption
 }
@@ -160,16 +163,89 @@ func testEvaluate(t *testing.T, testCases []evaluateTestCase) {
 				t.Fatalf("Compiling \"%s\" returned unexpected error: %v", tc.inputPath, err)
 			}
 
-			got, err := compiledExpression.Evaluate(tc.inputCollection, tc.evaluateOptions...)
+			got, gotErr := compiledExpression.Evaluate(tc.inputCollection, tc.evaluateOptions...)
 
-			if err != nil {
-				t.Fatalf("Evaluating \"%s\" returned unexpected error: %v", tc.inputPath, err)
+			if !cmp.Equal(gotErr, tc.wantErr, cmpopts.EquateErrors()) {
+				t.Errorf("Resolve() gotErr = %v, wantErr = %v", gotErr, tc.wantErr)
 			}
+
 			if diff := cmp.Diff(tc.wantCollection, got, protocmp.Transform()); diff != "" {
 				t.Errorf("Evaluating \"%s\" returned unexpected diff (-want, +got)\n%s", tc.inputPath, diff)
 			}
 		})
 	}
+}
+
+func TestResolve(t *testing.T) {
+	var patientChuRef = &dtpb.Reference{
+		Type: fhir.URI("Patient"),
+		Id:   fhir.String("123"),
+	}
+
+	var obsWithPatientChuRef = &opb.Observation{
+		Subject: patientChuRef,
+	}
+	var obsWithPatientTsuRef = &opb.Observation{
+		Subject: reference.Weak("Patient", "123456"),
+	}
+
+	resolveErr := errors.New("some resolve() error")
+
+	testCases := []evaluateTestCase{
+		{
+			name:      "successful resolution",
+			inputPath: "Observation.subject.resolve()",
+			inputCollection: []fhirpath.Resource{
+				obsWithPatientChuRef,
+			},
+			evaluateOptions: []fhirpath.EvaluateOption{
+				evalopts.WithResolver(resolvertest.HappyResolver(patientChu))},
+			wantCollection: system.Collection{patientChu},
+		},
+		{
+			name:      "Resolver not configured",
+			inputPath: "Observation.subject.resolve()",
+			inputCollection: []fhirpath.Resource{
+				obsWithPatientChuRef,
+			},
+			evaluateOptions: []fhirpath.EvaluateOption{},
+			wantErr:         impl.ErrUnconfiguredResolver,
+		},
+		{
+			name:      "resolve() returns an error",
+			inputPath: "Observation.subject.resolve()",
+			inputCollection: []fhirpath.Resource{
+				obsWithPatientChuRef,
+			},
+			evaluateOptions: []fhirpath.EvaluateOption{
+				evalopts.WithResolver(
+					resolvertest.ErroringResolver(resolveErr)),
+			},
+			wantErr: resolveErr,
+		},
+		{
+			name:            "empty input",
+			inputPath:       "Observation.subject.resolve()",
+			inputCollection: []fhirpath.Resource{},
+			evaluateOptions: []fhirpath.EvaluateOption{
+				evalopts.WithResolver(resolvertest.HappyResolver(patientChu)),
+			},
+			wantCollection: system.Collection{},
+		},
+		{
+			name:      "multiple inputs",
+			inputPath: "Observation.subject.resolve()",
+			inputCollection: []fhirpath.Resource{
+				obsWithPatientChuRef,
+				obsWithPatientTsuRef,
+			},
+			evaluateOptions: []fhirpath.EvaluateOption{
+				evalopts.WithResolver(resolvertest.HappyResolver(patientChu)),
+			},
+			wantCollection: system.Collection{patientChu},
+		},
+	}
+	testEvaluate(t, testCases)
 }
 
 func TestEvaluate_PathSelection_ReturnsError(t *testing.T) {
@@ -854,6 +930,7 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			wantCollection:  system.Collection{testDateTime},
 			evaluateOptions: []fhirpath.EvaluateOption{evalopts.OverrideTime(testTime)},
 		},
+
 		{
 			name:            "evaluate with custom function 'patient()'",
 			inputPath:       "patient() = Patient",
@@ -950,6 +1027,54 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			inputPath:       "name.given.select($this = 'Kang')",
 			inputCollection: []fhirpath.Resource{patientChu},
 			wantCollection:  system.Collection{system.Boolean(false), system.Boolean(true)},
+		},
+		{
+			name:            "filters child fields with ofType()",
+			inputPath:       "children().ofType(string)",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{fhir.ID("123"), &ppb.Patient_GenderCode{Value: cpb.AdministrativeGenderCode_FEMALE}},
+		},
+		{
+			name:            "return fhir resource with ofType()",
+			inputPath:       "Patient.ofType(Patient)",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{patientChu},
+		},
+		{
+			name:            "return fhir resource with ofType() type and namespace",
+			inputPath:       "Patient.ofType(FHIR.Patient)",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{patientChu},
+		},
+		{
+			name:            "return fhir resource with ofType() using base type",
+			inputPath:       "Patient.ofType(FHIR.Resource)",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{patientChu},
+		},
+		{
+			name:            "returns empty with ofType()",
+			inputPath:       "Patient.ofType(FHIR.Observation)",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{},
+		},
+		{
+			name:            "ofType() returns gender field",
+			inputPath:       "Patient.gender.ofType(code)",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{&ppb.Patient_GenderCode{Value: cpb.AdministrativeGenderCode_FEMALE}},
+		},
+		{
+			name:            "ofType() returns name.use fields",
+			inputPath:       "Patient.name.ofType(HumanName).use",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{&dtpb.HumanName_UseCode{Value: cpb.NameUseCode_NICKNAME}, &dtpb.HumanName_UseCode{Value: cpb.NameUseCode_OFFICIAL}},
+		},
+		{
+			name:            "ofType() returns name.use fields using a base type",
+			inputPath:       "Patient.name.ofType(FHIR.Element).use.exists()",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{system.Boolean(true)},
 		},
 		{
 			name:            "returns concatenated family name value with join()",

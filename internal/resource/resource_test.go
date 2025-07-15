@@ -184,6 +184,71 @@ func TestProfileStrings(t *testing.T) {
 	}
 }
 
+func TestUnversionedProfileStrings(t *testing.T) {
+	testCases := []struct {
+		name string
+		res  fhir.Resource
+		want []string
+	}{
+		{
+			name: "nil resource has no profiles",
+			res:  nil,
+			want: nil,
+		},
+		{
+			name: "empty resource has no profiles",
+			res:  &ppb.Patient{},
+			want: nil,
+		},
+		{
+			name: "resource with no profile has no profiles",
+			res:  &ppb.Patient{Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{}}},
+			want: nil,
+		},
+		{
+			name: "resource with single unversioned profile returns profile",
+			res:  &ppb.Patient{Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{{Value: "Profile1"}}}},
+			want: []string{"Profile1"},
+		},
+		{
+			name: "resource with single versioned profile returns unversioned profile",
+			res:  &ppb.Patient{Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{{Value: "Profile1|1.2.3"}}}},
+			want: []string{"Profile1"},
+		},
+		{
+			name: "resource with multiple unversioned profiles returns profiles",
+			res: &ppb.Patient{Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{
+				{Value: "Profile1"}, {Value: "Profile2"}, {Value: "Profile3"}, {Value: "Profile4"}, {Value: "Profile5"},
+			}}},
+			want: []string{"Profile1", "Profile2", "Profile3", "Profile4", "Profile5"},
+		},
+		{
+			name: "resource with multiple versioned profiles returns unversioned profiles",
+			res: &ppb.Patient{Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{
+				{Value: "Profile1|1.2.3"}, {Value: "Profile2|4.5.6"}, {Value: "Profile3|7.8.9"},
+			}}},
+			want: []string{"Profile1", "Profile2", "Profile3"},
+		},
+		{
+			name: "resource with duplicate profiles returns unique profiles",
+			res: &ppb.Patient{Meta: &dtpb.Meta{Profile: []*dtpb.Canonical{
+				{Value: "Profile1"}, {Value: "Profile1"}, {Value: "Profile2"}, {Value: "Profile2|1.2.3"}, {Value: "Profile2|4.5.6"}, {Value: "Profile2|7.8.9"},
+			}}},
+			want: []string{"Profile1", "Profile2"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resource.UnversionedProfileStrings(tc.res)
+
+			if diff := cmp.Diff(got, tc.want, protocmp.Transform()); diff != "" {
+				t.Fatalf("UnversionedProfileStrings(%s): (-got, +want):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
 func TestProfiles(t *testing.T) {
 	testCases := []struct {
 		name string
@@ -494,3 +559,107 @@ var _ resource.HasGetIdentifierList = (*document_reference_go_proto.DocumentRefe
 // Sanity check that a few resources have GetIdentifier() as a single ID. This is not a complete list.
 var _ resource.HasGetIdentifierSingle = (*bundle_and_contained_resource_go_proto.Bundle)(nil)
 var _ resource.HasGetIdentifierSingle = (*questionnaire_response_go_proto.QuestionnaireResponse)(nil)
+
+func TestGetExtension_List(t *testing.T) {
+	ext1 := &dtpb.Extension{Url: &dtpb.Uri{Value: "http://example.com/ext1"}}
+	ext2 := &dtpb.Extension{Url: &dtpb.Uri{Value: "http://example.com/ext2"}}
+
+	testCases := []struct {
+		name string
+		res  fhir.Resource
+		ok   bool
+		want []*dtpb.Extension
+	}{
+		{
+			name: "Patient with multiple extensions",
+			res: &ppb.Patient{
+				Extension: []*dtpb.Extension{ext1, ext2},
+			},
+			ok:   true,
+			want: []*dtpb.Extension{ext1, ext2},
+		},
+		{
+			name: "Patient with no extensions",
+			res:  &ppb.Patient{},
+			want: nil,
+			ok:   true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := resource.GetExtensions(tc.res)
+			if ok != tc.ok {
+				t.Errorf("GetExtensions(%s) got ok = %v, want %v", tc.name, ok, tc.ok)
+				return
+			}
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("GetExtensions(%s) mismatch (-want, +got):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestGetExtension_Single(t *testing.T) {
+	ext := &dtpb.Extension{Url: &dtpb.Uri{Value: "http://example.com/ext-single"}}
+
+	testCases := []struct {
+		name string
+		res  fhir.Resource
+		ok   bool
+		want []*dtpb.Extension
+	}{
+		{
+			name: "QuestionnaireResponse with single extension",
+			res: &questionnaire_response_go_proto.QuestionnaireResponse{
+				Extension: []*dtpb.Extension{ext},
+			},
+			ok:   true,
+			want: []*dtpb.Extension{ext},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := resource.GetExtensions(tc.res)
+			if ok != tc.ok {
+				t.Errorf("GetExtensions(%s) got ok = %v, want %v", tc.name, ok, tc.ok)
+				return
+			}
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("GetExtensions(%s) mismatch (-want, +got):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestGetExtension_nil(t *testing.T) {
+	testCases := []struct {
+		name string
+		res  fhir.Resource
+		ok   bool
+	}{
+		{
+			name: "Resource does not implement GetExtension",
+			res:  &bundle_and_contained_resource_go_proto.Bundle{},
+			ok:   false,
+		},
+		{
+			name: "Nil resource",
+			res:  nil,
+			ok:   false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := resource.GetExtensions(tc.res)
+			if ok != tc.ok {
+				t.Errorf("GetExtensions(%s): got ok = %v, want %v", tc.name, ok, tc.ok)
+			}
+			if got != nil {
+				t.Errorf("GetExtensions(%s): got %v, want nil", tc.name, got)
+			}
+		})
+	}
+}

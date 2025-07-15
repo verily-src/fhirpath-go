@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/opts"
+	"github.com/verily-src/fhirpath-go/fhirpath/resolver"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 )
@@ -71,4 +72,12 @@ func validateType(input any) error {
 		err = fmt.Errorf("%w: %T", ErrUnsupportedType, input)
 	}
 	return err
+}
+
+// WithResolver returns an EvaluateOption that sets the FHIR reference resolver.
+func WithResolver(resolver resolver.Resolver) opts.EvaluateOption {
+	return opts.Transform(func(cfg *opts.EvaluateConfig) error {
+		cfg.Context.Resolver = resolver
+		return nil
+	})
 }

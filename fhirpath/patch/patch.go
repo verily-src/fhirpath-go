@@ -576,7 +576,7 @@ func (e *Expression) getRefAndFieldForCollection(collection system.Collection, t
 	return nil, nil, -1, fmt.Errorf("%w: field cannot be replaced", ErrNotPatchable)
 }
 
-// TODO(PHP-29745): make this a common function
+// TODO: make this a common function
 func (e *Expression) unwrapOneof(obj proto.Message) proto.Message {
 	message := obj.ProtoReflect()
 	descriptor := message.Descriptor()

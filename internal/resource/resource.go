@@ -7,6 +7,7 @@ package resource
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
@@ -145,6 +146,29 @@ func ProfileStrings(resource fhir.Resource) []string {
 	return profiles
 }
 
+// UnversionedProfileStrings is a helper for getting the unversioned fhir profiles of a resource in
+// string form. The order of the profiles are preserved and duplicate profile base urls are removed.
+//
+// If the resource is nil, this will return nil.
+func UnversionedProfileStrings(resource fhir.Resource) []string {
+	profiles := ProfileStrings(resource)
+	if profiles == nil {
+		return nil
+	}
+
+	var unversionedProfiles []string
+	seen := map[string]bool{}
+
+	for _, profile := range profiles {
+		unversionedProfile := strings.Split(profile, "|")[0]
+		if !seen[unversionedProfile] {
+			seen[unversionedProfile] = true
+			unversionedProfiles = append(unversionedProfiles, unversionedProfile)
+		}
+	}
+	return unversionedProfiles
+}
+
 // VersionedURI is a helper for getting the URI of a resource as a URI object.
 // The URI is returned in the format Type/ID/_history/VERSION.
 //
@@ -251,7 +275,6 @@ type HasGetIdentifierSingle interface {
 // The list may be nil or empty if no identifiers are present.
 // See interfaces: fhir.HasGetIdentifierList, fhir.HasGetIdentifierSingle
 func GetIdentifierList(res fhir.Resource) ([]*dtpb.Identifier, error) {
-
 	if cast, ok := res.(HasGetIdentifierList); ok {
 		// resource implements GetIdentifier() as a list
 		return cast.GetIdentifier(), nil
@@ -268,4 +291,30 @@ func GetIdentifierList(res fhir.Resource) ([]*dtpb.Identifier, error) {
 
 	// This is likely a bug / results from passing an unexpected type of resource
 	return nil, fmt.Errorf("%w: Resource does not implement GetIdentifier(): %v", ErrGetIdentifierList, res)
+}
+
+// GetExtensions returns the list of extensions from a resource, if available.
+func GetExtensions(res fhir.Resource) (extensions []*dtpb.Extension, ok bool) {
+	type extensionList interface {
+		GetExtension() []*dtpb.Extension
+	}
+	type extensionSingle interface {
+		GetExtension() *dtpb.Extension
+	}
+
+	// Check if the resource contains an Extension, either as a list or a single item.
+	if cast, ok := res.(extensionList); ok {
+		return cast.GetExtension(), true
+	}
+
+	if cast, ok := res.(extensionSingle); ok {
+		ext := cast.GetExtension()
+		if ext == nil {
+			return nil, true
+		}
+
+		return []*dtpb.Extension{ext}, true
+	}
+
+	return nil, false
 }
