@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
+	prpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/person_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/verily-src/fhirpath-go/internal/element/canonical"
@@ -508,6 +509,78 @@ func TestFindByURL(t *testing.T) {
 			got := extension.FindByURL(tc.extensions, tc.system)
 			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("FindByURL(%s): diff (-want,+got):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestClearByURL(t *testing.T) {
+	const (
+		urlA = "http://example.com/extA"
+		urlB = "http://example.com/extB"
+	)
+	extA := extension.New(urlA, fhir.String("valueA"))
+	extB := extension.New(urlB, fhir.String("valueB"))
+
+	testCases := []struct {
+		name            string
+		extensions      []*dtpb.Extension
+		clearExtWithUrl string
+		want            []*dtpb.Extension
+	}{
+		{
+			name:            "nil slice",
+			extensions:      nil,
+			clearExtWithUrl: urlA,
+			want:            nil,
+		},
+		{
+			name:            "no match",
+			extensions:      []*dtpb.Extension{extA},
+			clearExtWithUrl: urlB,
+			want:            []*dtpb.Extension{extA},
+		},
+		{
+			name:            "single match",
+			extensions:      []*dtpb.Extension{extA},
+			clearExtWithUrl: urlA,
+			want:            nil, // ClearByURL removes the extension.
+		},
+		{
+			name:            "multiple extensions, match is first",
+			extensions:      []*dtpb.Extension{extA, extB},
+			clearExtWithUrl: urlA,
+			want:            []*dtpb.Extension{extB},
+		},
+		{
+			name:            "multiple extensions, contains match in the middle",
+			extensions:      []*dtpb.Extension{extB, extA, extB},
+			clearExtWithUrl: urlA,
+			want:            []*dtpb.Extension{extB, extB}, // Only the B extension remains.
+		},
+		{
+			name:            "multiple extensions, contains match",
+			extensions:      []*dtpb.Extension{extB, extA, extA},
+			clearExtWithUrl: urlB,
+			want:            []*dtpb.Extension{extA, extA}, // Only the A extensions remain.
+		},
+		{
+			name:            "multiple matches",
+			extensions:      []*dtpb.Extension{extA, extB, extA},
+			clearExtWithUrl: urlA,
+			want:            []*dtpb.Extension{extB},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := append([]*dtpb.Extension{}, tc.extensions...) // Copy to avoid modifying original slice.
+			person := &prpb.Person{
+				Extension: got,
+			}
+			extension.ClearByURL(person, tc.clearExtWithUrl)
+			if diff := cmp.Diff(tc.want, person.GetExtension(), protocmp.Transform()); diff != "" {
+				t.Errorf("ClearByURL(%s): diff (-want,+got):\n%s", tc.name, diff)
 			}
 		})
 	}

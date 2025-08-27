@@ -121,11 +121,14 @@ func From(input any) (Any, error) {
 		}
 		return value, nil
 	case *dtpb.Quantity:
-		value, err := decimal.NewFromString(v.Value.Value)
+		unit := v.GetUnit().GetValue()
+		if v.GetValue() == nil {
+			return Quantity{unit: unit}, nil
+		}
+		value, err := decimal.NewFromString(v.GetValue().GetValue())
 		if err != nil {
 			return nil, err
 		}
-		unit := v.GetCode().GetValue()
 		return Quantity{Decimal(value), unit}, nil
 	case Any:
 		return v, nil

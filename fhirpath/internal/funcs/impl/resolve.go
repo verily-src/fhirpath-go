@@ -24,7 +24,6 @@ func isValidResolveInput(item any) bool {
 }
 
 func stringifyReference(ref *dtpb.Reference) string {
-
 	if ref == nil || ref.GetType() == nil || ref.GetReference() == nil {
 		return ""
 	}

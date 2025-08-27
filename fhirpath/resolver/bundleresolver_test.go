@@ -85,7 +85,7 @@ func TestBundleResolver_Resolve(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
+	testCases := []struct {
 		name          string
 		bundle        *r4pb.Bundle
 		toResolveRefs []string
@@ -296,7 +296,7 @@ func TestBundleResolver_Resolve(t *testing.T) {
 			wantResources: []fhir.Resource{},
 		},
 		{
-			name: "Resolve Relative URL Reference - empty rootURLs in resolveeResources; returns empty",
+			name: "Resolve Relative URL Reference - empty rootURLs in resolveResources; returns empty",
 			bundle: createBundle([]*r4pb.Bundle_Entry{
 				{Resource: crPatient123,
 					FullUrl: fhir.URIFromOID(oidRef)},
@@ -412,9 +412,18 @@ func TestBundleResolver_Resolve(t *testing.T) {
 			toResolveRefs: []string{patAbsVersionlessUrl},
 			wantResources: []fhir.Resource{},
 		},
+		{
+			name: "Empty Resolve Reference; returns empty",
+			bundle: createBundle([]*r4pb.Bundle_Entry{
+				{Resource: crPatient123,
+					FullUrl: fhir.URIFromOID(oidRef)},
+			}),
+			toResolveRefs: []string{""},
+			wantResources: []fhir.Resource{},
+		},
 	}
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			br, err := resolver.NewBundleResolver(tc.bundle)
 			if err != nil {
@@ -434,7 +443,7 @@ func TestBundleResolver_Resolve(t *testing.T) {
 }
 
 func TestNewBundleResolver(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name    string
 		bundle  *r4pb.Bundle
 		wantErr error
@@ -463,7 +472,7 @@ func TestNewBundleResolver(t *testing.T) {
 			wantErr: resolver.ErrNilBundleInit,
 		},
 	}
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			br, gotErr := resolver.NewBundleResolver(tc.bundle)
 			if gotErr != tc.wantErr {

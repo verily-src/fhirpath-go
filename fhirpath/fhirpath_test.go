@@ -930,7 +930,6 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			wantCollection:  system.Collection{testDateTime},
 			evaluateOptions: []fhirpath.EvaluateOption{evalopts.OverrideTime(testTime)},
 		},
-
 		{
 			name:            "evaluate with custom function 'patient()'",
 			inputPath:       "patient() = Patient",

@@ -275,6 +275,9 @@ func LiteralInfoOf(ref *dtpb.Reference) (*LiteralInfo, error) {
 //
 // Any returned error does NOT include the uri. That is left to the caller.
 func LiteralInfoFromURI(uri string) (*LiteralInfo, error) {
+	if uri == "" {
+		return nil, fmt.Errorf("%w: empty uri", ErrInvalidURI)
+	}
 	if uri[0] == '#' {
 		// Note that "#" alone is a valid fragment.
 		fragStr := uri[1:]

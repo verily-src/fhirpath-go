@@ -250,9 +250,9 @@ func (v *FHIRPathVisitor) VisitEqualityExpression(ctx *grammar.EqualityExpressio
 	case expr.NotEquals:
 		expression = &expr.EqualityExpression{Left: leftResult.Result, Right: rightResult.Result, Not: true}
 	case expr.Equivalence:
-		// TODO : Implement equivalence expressions
+		// TODO: Implement equivalence expressions
 	case expr.Inequivalence:
-		// TODO : Implement non-equivalence expressions
+		// TODO: Implement non-equivalence expressions
 	}
 	return v.transformedVisitResult(expression)
 }

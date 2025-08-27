@@ -125,6 +125,9 @@ func isURN(refValue string) bool {
 
 // absoluteURLInfo is a helper function that returns base URL, identity string, isVersioned boolean, and a boolean indicating if the given reference is an absolute URL, for a given reference string
 func absoluteURLInfo(refValue string) (baseURL string, identityStr string, isVersioned bool, isAbsoluteURL bool) {
+	if refValue == "" {
+		return "", "", false, false
+	}
 	identity, err := reference.IdentityFromAbsoluteURL(refValue)
 	if err != nil {
 		return "", "", false, false

@@ -15,10 +15,13 @@ import (
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 )
 
-var date, _ = system.ParseDate("2012-12-31")
-var time, _ = system.ParseTime("08:30:05")
-var dateTime, _ = system.ParseDateTime("2002-04-20T08:30:00Z")
-var quantity, _ = system.ParseQuantity("1.234", "m")
+var (
+	date, _         = system.ParseDate("2012-12-31")
+	time, _         = system.ParseTime("08:30:05")
+	dateTime, _     = system.ParseDateTime("2002-04-20T08:30:00Z")
+	quantity, _     = system.ParseQuantity("1.234", "m")
+	zeroQuantity, _ = system.ParseQuantity("0", "m")
+)
 
 type testCase struct {
 	name       string
@@ -146,6 +149,14 @@ var testCases []testCase = []testCase{
 		name:       "converts quantity",
 		input:      fhir.UCUMQuantity(float64(1.234), "m"),
 		want:       quantity,
+		shouldCast: true,
+	},
+	{
+		name: "converts quantity without value",
+		input: &dtpb.Quantity{
+			Unit: fhir.String("m"),
+		},
+		want:       zeroQuantity,
 		shouldCast: true,
 	},
 	{

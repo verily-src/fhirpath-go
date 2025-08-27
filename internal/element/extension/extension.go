@@ -191,6 +191,23 @@ func SetByURL[T ValueX](ext fhir.Extendable, url string, values ...T) {
 	Overwrite(ext, newExtensionList...)
 }
 
+// ClearByURL removes all extensions with the specified URL from the
+// specified FHIR Element or Resource.
+func ClearByURL(ext fhir.Extendable, url string) {
+	if ext == nil {
+		panic("No extendable object specified for ClearByURL; ext is nil.")
+	}
+
+	var newExtensionList []*dtpb.Extension
+	for _, currExt := range ext.GetExtension() {
+		if currExt.GetUrl().GetValue() != url {
+			newExtensionList = append(newExtensionList, currExt)
+		}
+	}
+
+	Overwrite(ext, newExtensionList...)
+}
+
 // Overwrite modifies a Resource or Element in-place to overwrite all of the
 // extensions in the given object with the provided ones.
 //
