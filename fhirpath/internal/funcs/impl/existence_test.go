@@ -665,3 +665,321 @@ func TestEmpty_RaisesError(t *testing.T) {
 		})
 	}
 }
+
+func TestSubsetOf_Success(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input system.Collection
+		args  []expr.Expression
+		want  system.Collection
+	}{
+		{
+			name:  "returns true if input is empty",
+			input: system.Collection{},
+			args:  []expr.Expression{exprtest.Return(system.Integer(1), system.Integer(2))},
+			want:  system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns false if argument collection is empty but input is not",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+			},
+			args: []expr.Expression{exprtest.Return()},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "returns true if input is subset of argument collection",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+				system.Integer(4),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns false if input is not subset of argument collection",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(5),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+				system.Integer(4),
+			)},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "returns true if input equals argument collection",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns true with fhir.Integer types - subset case",
+			input: system.Collection{
+				fhir.Integer(1),
+				fhir.Integer(2),
+			},
+			args: []expr.Expression{exprtest.Return(
+				fhir.Integer(1),
+				fhir.Integer(2),
+				fhir.Integer(3),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns false with fhir.Integer types - not subset case",
+			input: system.Collection{
+				fhir.Integer(1),
+				fhir.Integer(4),
+			},
+			args: []expr.Expression{exprtest.Return(
+				fhir.Integer(1),
+				fhir.Integer(2),
+				fhir.Integer(3),
+			)},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "returns true with mixed system and fhir types",
+			input: system.Collection{
+				system.Integer(1),
+				fhir.Integer(2),
+			},
+			args: []expr.Expression{exprtest.Return(
+				fhir.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns true with string collections - subset case",
+			input: system.Collection{
+				system.String("a"),
+				system.String("b"),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.String("a"),
+				system.String("b"),
+				system.String("c"),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns false with string collections - not subset case",
+			input: system.Collection{
+				system.String("a"),
+				system.String("d"),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.String("a"),
+				system.String("b"),
+				system.String("c"),
+			)},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "returns true with coding collections - subset case",
+			input: system.Collection{
+				fhir.Coding("loinc-system", "loinc-code"),
+				fhir.Coding("snomed-system", "snomed-code"),
+			},
+			args: []expr.Expression{exprtest.Return(
+				fhir.Coding("loinc-system", "loinc-code"),
+				fhir.Coding("snomed-system", "snomed-code"),
+				fhir.Coding("icd10-system", "icd10-code"),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns false with coding collections - not subset case",
+			input: system.Collection{
+				fhir.Coding("loinc-system", "loinc-code"),
+				fhir.Coding("missing-system", "missing-code"),
+			},
+			args: []expr.Expression{exprtest.Return(
+				fhir.Coding("loinc-system", "loinc-code"),
+				fhir.Coding("snomed-system", "snomed-code"),
+			)},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "treats FHIR messages with different field orders as equivalent",
+			input: system.Collection{
+				&dtpb.HumanName{
+					Given:  []*dtpb.String{fhir.String("John")},
+					Family: fhir.String("Doe"),
+				},
+			},
+			args: []expr.Expression{exprtest.Return(
+				&dtpb.HumanName{
+					Family: fhir.String("Doe"),
+					Given:  []*dtpb.String{fhir.String("John")},
+				},
+				&dtpb.HumanName{
+					Given:  []*dtpb.String{fhir.String("Jane")},
+					Family: fhir.String("Smith"),
+				},
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns false for large collections - element not in superset",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+				system.Integer(4),
+				system.Integer(5),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+				system.Integer(4),
+				system.Integer(6),
+				system.Integer(7),
+			)},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "returns true for large collections - proper subset",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+				system.Integer(4),
+				system.Integer(5),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+				system.Integer(4),
+				system.Integer(5),
+				system.Integer(6),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "returns false for multiset - duplicate elements in input",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(1),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(2),
+			)},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "returns false for multiset - input has more duplicates than other collection",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(1),
+				system.Integer(1),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(3),
+			)},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "returns true for multiset - input has fewer duplicates than other collection",
+			input: system.Collection{
+				system.Integer(1),
+				system.Integer(2),
+			},
+			args: []expr.Expression{exprtest.Return(
+				system.Integer(1),
+				system.Integer(1),
+				system.Integer(2),
+				system.Integer(2),
+			)},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name:  "returns true for single element subset",
+			input: system.Collection{system.Integer(1)},
+			args:  []expr.Expression{exprtest.Return(system.Integer(1), system.Integer(2))},
+			want:  system.Collection{system.Boolean(true)},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := impl.SubsetOf(&expr.Context{}, tc.input, tc.args...)
+			if err != nil {
+				t.Errorf("SubsetOf() error = %v", err)
+			}
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("SubsetOf() returned unexpected diff (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestSubsetOf_Errors(t *testing.T) {
+	testCases := []struct {
+		name            string
+		inputArgs       []expr.Expression
+		inputCollection system.Collection
+		wantErrMsg      string
+	}{
+		{
+			name:            "no arguments provided",
+			inputArgs:       []expr.Expression{},
+			inputCollection: system.Collection{system.Integer(1), system.Integer(2)},
+			wantErrMsg:      "incorrect function arity: received 0 arguments, expected 1",
+		},
+		{
+			name: "multiple arguments provided",
+			inputArgs: []expr.Expression{
+				exprtest.Return(system.Integer(1)),
+				exprtest.Return(system.Integer(2)),
+			},
+			inputCollection: system.Collection{system.Integer(1)},
+			wantErrMsg:      "incorrect function arity: received 2 arguments, expected 1",
+		},
+		{
+			name:            "argument expression raises error",
+			inputArgs:       []expr.Expression{exprtest.Error(errors.New("some error"))},
+			inputCollection: system.Collection{system.Integer(1)},
+			wantErrMsg:      "some error",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := impl.SubsetOf(&expr.Context{}, tc.inputCollection, tc.inputArgs...)
+			if err == nil {
+				t.Fatalf("evaluating SubsetOf function didn't return error when expected")
+			}
+
+			if err.Error() != tc.wantErrMsg {
+				t.Errorf("SubsetOf() error = %v, wantErrMsg %v", err, tc.wantErrMsg)
+			}
+		})
+	}
+}

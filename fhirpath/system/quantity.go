@@ -120,8 +120,8 @@ func (q Quantity) ToProtoQuantity() *dtpb.Quantity {
 	return res
 }
 
-// TODO: According to our initial investigations, Equal should return empty when value is not set.
 // Equal method to override cmp.Equal.
+// TODO: According to our initial investigations, Equal should return empty when value is not set.
 func (q Quantity) Equal(q2 Quantity) bool {
 	return q.value.Equal(q2.value) && q.unit == q2.unit
 }

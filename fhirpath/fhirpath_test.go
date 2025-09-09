@@ -14,13 +14,13 @@ import (
 	opb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/observation_go_proto"
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	prpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/practitioner_go_proto"
+	qrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/questionnaire_response_go_proto"
 	tpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/task_go_proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/shopspring/decimal"
+
 	"github.com/verily-src/fhirpath-go/fhirpath"
 	"github.com/verily-src/fhirpath-go/fhirpath/compopts"
 	"github.com/verily-src/fhirpath-go/fhirpath/evalopts"
+	"github.com/verily-src/fhirpath-go/fhirpath/fhirjson"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
 	"github.com/verily-src/fhirpath-go/fhirpath/resolver/resolvertest"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
@@ -28,6 +28,10 @@ import (
 	"github.com/verily-src/fhirpath-go/internal/element/reference"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/fhirconv"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/shopspring/decimal"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -41,119 +45,156 @@ type evaluateTestCase struct {
 	evaluateOptions []fhirpath.EvaluateOption
 }
 
-var patientChu = &ppb.Patient{
-	Id:     fhir.ID("123"),
-	Active: fhir.Boolean(true),
-	Gender: &ppb.Patient_GenderCode{
-		Value: cpb.AdministrativeGenderCode_FEMALE,
-	},
-	BirthDate: fhir.MustParseDate("2000-03-22"),
-	Telecom: []*dtpb.ContactPoint{
-		{
-			System: &dtpb.ContactPoint_SystemCode{Value: cpb.ContactPointSystemCode_PHONE},
+var (
+	patientChu = &ppb.Patient{
+		Id:     fhir.ID("123"),
+		Active: fhir.Boolean(true),
+		Gender: &ppb.Patient_GenderCode{
+			Value: cpb.AdministrativeGenderCode_FEMALE,
 		},
-	},
-	Name: []*dtpb.HumanName{
-		{
-			Use: &dtpb.HumanName_UseCode{
-				Value: cpb.NameUseCode_NICKNAME,
-			},
-			Given:  []*dtpb.String{fhir.String("Senpai")},
-			Family: fhir.String("Chu"),
-		},
-		{
-			Use: &dtpb.HumanName_UseCode{
-				Value: cpb.NameUseCode_OFFICIAL,
-			},
-			Given:  []*dtpb.String{fhir.String("Kang")},
-			Family: fhir.String("Chu"),
-		},
-	},
-	Contact: []*ppb.Patient_Contact{
-		{
-			Name: &dtpb.HumanName{
-				Given:  []*dtpb.String{fhir.String("Senpai")},
-				Family: fhir.String("Rodusek"),
-			},
-		},
-	},
-}
-var fooExtension, _ = extension.FromElement("foourl", fhir.String("foovalue"))
-var barExtension, _ = extension.FromElement("barurl", fhir.String("barvalue"))
-var nameVoldemort = &dtpb.HumanName{
-	Given: []*dtpb.String{
-		fhir.String("Lord"),
-	},
-	Family: fhir.String("Voldemort"),
-}
-var patientVoldemort = &ppb.Patient{
-	Id:     fhir.ID("123"),
-	Active: fhir.Boolean(true),
-	Gender: &ppb.Patient_GenderCode{
-		Value: cpb.AdministrativeGenderCode_FEMALE,
-	},
-	Deceased: &ppb.Patient_DeceasedX{
-		Choice: &ppb.Patient_DeceasedX_Boolean{
-			Boolean: fhir.Boolean(true),
-		},
-	},
-	MultipleBirth: &ppb.Patient_MultipleBirthX{
-		Choice: &ppb.Patient_MultipleBirthX_Integer{
-			Integer: fhir.Integer(int32(2)),
-		},
-	},
-	Meta: &dtpb.Meta{
-		Tag: []*dtpb.Coding{
+		BirthDate: fhir.MustParseDate("2000-03-22"),
+		Telecom: []*dtpb.ContactPoint{
 			{
-				Code: fhir.Code("#blessed"),
+				System: &dtpb.ContactPoint_SystemCode{Value: cpb.ContactPointSystemCode_PHONE},
 			},
 		},
-	},
-	Name: []*dtpb.HumanName{nameVoldemort},
-	Extension: []*dtpb.Extension{
-		fooExtension,
-		barExtension,
-	},
-}
-var docRef = &drpb.DocumentReference{
-	Status: &drpb.DocumentReference_StatusCode{
-		Value: cpb.DocumentReferenceStatusCode_CURRENT,
-	},
-	Content: []*drpb.DocumentReference_Content{
-		{
-			Attachment: &dtpb.Attachment{
-				ContentType: &dtpb.Attachment_ContentTypeCode{
-					Value: "image",
+		Name: []*dtpb.HumanName{
+			{
+				Use: &dtpb.HumanName_UseCode{
+					Value: cpb.NameUseCode_NICKNAME,
 				},
-				Url:   fhir.URL("http://image"),
-				Title: fhir.String("title"),
+				Given:  []*dtpb.String{fhir.String("Senpai")},
+				Family: fhir.String("Chu"),
+			},
+			{
+				Use: &dtpb.HumanName_UseCode{
+					Value: cpb.NameUseCode_OFFICIAL,
+				},
+				Given:  []*dtpb.String{fhir.String("Kang")},
+				Family: fhir.String("Chu"),
 			},
 		},
-	},
-}
-var questionnaireRef, _ = reference.Typed("Questionnaire", "1234")
-var obsWithRef = &opb.Observation{
-	Meta: &dtpb.Meta{
-		Extension: []*dtpb.Extension{
+		Contact: []*ppb.Patient_Contact{
 			{
-				Url: fhir.URI("https://extension"),
-				Value: &dtpb.Extension_ValueX{
-					Choice: &dtpb.Extension_ValueX_Reference{
-						Reference: questionnaireRef,
+				Name: &dtpb.HumanName{
+					Given:  []*dtpb.String{fhir.String("Senpai")},
+					Family: fhir.String("Rodusek"),
+				},
+			},
+		},
+	}
+	fooExtension, _ = extension.FromElement("foourl", fhir.String("foovalue"))
+	barExtension, _ = extension.FromElement("barurl", fhir.String("barvalue"))
+	nameVoldemort   = &dtpb.HumanName{
+		Given: []*dtpb.String{
+			fhir.String("Lord"),
+		},
+		Family: fhir.String("Voldemort"),
+	}
+	patientVoldemort = &ppb.Patient{
+		Id:     fhir.ID("123"),
+		Active: fhir.Boolean(true),
+		Gender: &ppb.Patient_GenderCode{
+			Value: cpb.AdministrativeGenderCode_FEMALE,
+		},
+		Deceased: &ppb.Patient_DeceasedX{
+			Choice: &ppb.Patient_DeceasedX_Boolean{
+				Boolean: fhir.Boolean(true),
+			},
+		},
+		MultipleBirth: &ppb.Patient_MultipleBirthX{
+			Choice: &ppb.Patient_MultipleBirthX_Integer{
+				Integer: fhir.Integer(int32(2)),
+			},
+		},
+		Meta: &dtpb.Meta{
+			Tag: []*dtpb.Coding{
+				{
+					Code: fhir.Code("#blessed"),
+				},
+			},
+		},
+		Name: []*dtpb.HumanName{nameVoldemort},
+		Extension: []*dtpb.Extension{
+			fooExtension,
+			barExtension,
+		},
+	}
+	docRef = &drpb.DocumentReference{
+		Status: &drpb.DocumentReference_StatusCode{
+			Value: cpb.DocumentReferenceStatusCode_CURRENT,
+		},
+		Content: []*drpb.DocumentReference_Content{
+			{
+				Attachment: &dtpb.Attachment{
+					ContentType: &dtpb.Attachment_ContentTypeCode{
+						Value: "image",
+					},
+					Url:   fhir.URL("http://image"),
+					Title: fhir.String("title"),
+				},
+			},
+		},
+	}
+	questionnaireRef, _ = reference.Typed("Questionnaire", "1234")
+	obsWithRef          = &opb.Observation{
+		Meta: &dtpb.Meta{
+			Extension: []*dtpb.Extension{
+				{
+					Url: fhir.URI("https://extension"),
+					Value: &dtpb.Extension_ValueX{
+						Choice: &dtpb.Extension_ValueX_Reference{
+							Reference: questionnaireRef,
+						},
 					},
 				},
 			},
 		},
-	},
-	DerivedFrom: []*dtpb.Reference{
-		questionnaireRef,
-	},
-}
-var listWithNilRef = &lpb.List{
-	Entry: []*lpb.List_Entry{
-		{Item: &dtpb.Reference{Type: fhir.URI("Location")}},
-	},
-}
+		DerivedFrom: []*dtpb.Reference{
+			questionnaireRef,
+		},
+	}
+	listWithNilRef = &lpb.List{
+		Entry: []*lpb.List_Entry{
+			{Item: &dtpb.Reference{Type: fhir.URI("Location")}},
+		},
+	}
+
+	patientOfficialName = &dtpb.HumanName{
+		Given: []*dtpb.String{
+			{Value: "John"},
+		},
+		Family: &dtpb.String{Value: "Doe"},
+		Use:    &dtpb.HumanName_UseCode{Value: *cpb.NameUseCode_OFFICIAL.Enum()},
+	}
+
+	testPatient = &ppb.Patient{
+		Name: []*dtpb.HumanName{
+			patientOfficialName,
+			{
+				Given: []*dtpb.String{
+					{Value: "Johnny"},
+				},
+				Family: &dtpb.String{Value: "Doe"},
+				Use:    &dtpb.HumanName_UseCode{Value: *cpb.NameUseCode_NICKNAME.Enum()},
+			},
+		},
+	}
+
+	testQuestionnaireResponse = &qrpb.QuestionnaireResponse{
+		Item: []*qrpb.QuestionnaireResponse_Item{
+			{
+				Answer: []*qrpb.QuestionnaireResponse_Item_Answer{
+					{Value: &qrpb.QuestionnaireResponse_Item_Answer_ValueX{
+						Choice: &qrpb.QuestionnaireResponse_Item_Answer_ValueX_Coding{
+							Coding: &dtpb.Coding{Code: &dtpb.Code{Value: "foo"}},
+						},
+					}},
+				},
+			},
+		},
+	}
+)
 
 func testEvaluate(t *testing.T, testCases []evaluateTestCase) {
 	for _, tc := range testCases {
@@ -1596,5 +1637,165 @@ func TestMustCompile_ValidExpression_ReturnsExpression(t *testing.T) {
 
 	if result == nil {
 		t.Errorf("MustCompile: Expected result")
+	}
+}
+
+// Testing that by using only the fhirpath package, we can still evaluate
+// a FHIRPath expression that returns a resource.
+func TestFHIRPathResource(t *testing.T) {
+	want := system.Collection{
+		&dtpb.String{Value: "John"},
+	}
+
+	// Compile the FHIRPath expression
+	expr := fhirpath.MustCompile("name.given")
+
+	// Wrap the Patient resource in a FHIRPath Resource
+	resource := []fhirpath.Resource{testPatient}
+
+	// Evaluate the expression against the Patient resource
+	got, err := expr.Evaluate(resource)
+	if err != nil {
+		t.Errorf("Error evaluating FHIRPath expression: %v", err)
+	}
+
+	// Check if the results match the expected output
+	if len(got) != 2 {
+		t.Errorf("Expected 2 results, got %d", len(got))
+	}
+	gotValue := got[0].(*dtpb.String).GetValue()
+	wantValue := want[0].(*dtpb.String).GetValue()
+	if gotValue != wantValue {
+		t.Errorf("Expected %s, got %s", wantValue, gotValue)
+	}
+}
+
+func TestFHIRPathWhere(t *testing.T) {
+	resource := []fhirpath.Resource{testPatient}
+
+	// Test where: name is official (cpb.NameUseCode_OFFICIAL)
+	exprWhere := fhirpath.MustCompile("name.where(use = 'official')")
+	gotWhere, err := exprWhere.Evaluate(resource)
+	if err != nil {
+		t.Errorf("Error evaluating where: %v", err)
+	}
+	wantWhere := patientOfficialName
+
+	if len(gotWhere) != 1 {
+		t.Errorf("Expected 1 result from where, got %d", len(gotWhere))
+	}
+	if len(gotWhere) == 1 {
+		gotValue := gotWhere[0].(*dtpb.HumanName).GetGiven()[0].GetValue()
+		wantValue := wantWhere.GetGiven()[0].GetValue()
+		if gotValue != wantValue {
+			t.Errorf("Expected %s from where, got %q", wantValue, gotValue)
+		}
+	}
+}
+
+func TestFHIRPathCombine(t *testing.T) {
+	// Use the testQuestionnaireResponse defined above (empty for now, but can be extended)
+	resource := []fhirpath.Resource{testQuestionnaireResponse}
+
+	// Evaluate the FHIRPath expression: QuestionnaireResponse.item.answer.combine(today())
+	expr := fhirpath.MustCompile("item.answer.combine(today())")
+	got, err := expr.Evaluate(resource)
+	if err != nil {
+		t.Fatalf("Error evaluating combine: %v", err)
+	}
+
+	if got == nil {
+		t.Errorf("Expected non-nil result from combine, got nil")
+	}
+	if len(got) != 2 {
+		t.Errorf("Expected 2 results from combine, got %d", len(got))
+	}
+}
+
+func TestFHIRPathUnmarshalJSON(t *testing.T) {
+	// JSON data from an endpoint
+	jsonData := []byte(`{
+                "resourceType": "Patient",
+                "id": "example-patient",
+                "name": [
+                    {
+                        "use": "official",
+                        "given": ["John"],
+                        "family": "Doe"
+                    }
+                ],
+                "gender": "male",
+                "address": [
+                    {
+                        "line": ["123 Main Street"],
+                        "city": "Toronto",
+                        "country": "CA"
+                    }
+                ],
+                "telecom": [
+                    {
+                        "system": "phone",
+                        "value": "123-456-7890",
+                        "use": "home"
+                    }
+                ]
+            }`)
+
+	// Convert JSON to FHIRPath Resource using the system package
+	resource, err := fhirjson.UnmarshalNew(jsonData)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal FHIR resource: %v", err)
+	}
+
+	// Test additional FHIRPath expressions
+	testCases := []struct {
+		name          string
+		expression    string
+		expectedCount int
+		expectedValue string
+	}{
+		{
+			name:          "Extract family name",
+			expression:    "name.family",
+			expectedCount: 1,
+			expectedValue: "Doe",
+		},
+		{
+			name:          "Extract phone number",
+			expression:    "telecom.where(system='phone').value",
+			expectedCount: 1,
+			expectedValue: "123-456-7890",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			expr := fhirpath.MustCompile(tc.expression)
+			results, err := expr.Evaluate([]fhirpath.Resource{resource})
+			if err != nil {
+				t.Errorf("Error evaluating expression %q: %v", tc.expression, err)
+				return
+			}
+
+			if len(results) != tc.expectedCount {
+				t.Errorf("Expected %d results for %q, got %d", tc.expectedCount, tc.expression, len(results))
+				return
+			}
+
+			if len(results) > 0 {
+				var gotValue string
+				switch v := results[0].(type) {
+				case *dtpb.String:
+					gotValue = v.GetValue()
+				default:
+					t.Errorf("Unexpected result type: %T", v)
+					return
+				}
+
+				if gotValue != tc.expectedValue {
+					t.Errorf("Expected %q for expression %q, got %q", tc.expectedValue, tc.expression, gotValue)
+				}
+			}
+		})
 	}
 }
