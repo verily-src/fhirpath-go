@@ -70,7 +70,7 @@ func TestVersionedURI(t *testing.T) {
 			nil,
 		},
 		{
-			"nil resource",
+			"empty string VersionID",
 			&ppb.Patient{Meta: &dtpb.Meta{VersionId: fhir.ID("")}},
 			nil,
 		},
@@ -91,6 +91,44 @@ func TestVersionedURI(t *testing.T) {
 
 			if diff := cmp.Diff(got, tc.want, protocmp.Transform()); diff != "" {
 				t.Fatalf("VersionedURI(%s): (-got, +want):\n%s", tc.name, diff)
+			}
+		})
+	}
+}
+
+func TestMaybeVersionedURI(t *testing.T) {
+	testCases := []struct {
+		name string
+		res  fhir.Resource
+		want *dtpb.Uri
+	}{
+		{
+			"nil resource",
+			nil,
+			nil,
+		},
+		{
+			"empty string ID",
+			&ppb.Patient{Id: fhir.ID("")},
+			&dtpb.Uri{Value: "Patient/"},
+		},
+		{
+			"no version",
+			&ppb.Patient{Id: fhir.ID("abc")},
+			&dtpb.Uri{Value: "Patient/abc"},
+		},
+		{
+			"versioned resource",
+			&dpb.Device{Id: fhir.ID("123"), Meta: &dtpb.Meta{VersionId: fhir.ID("abc")}},
+			&dtpb.Uri{Value: "Device/123/_history/abc"},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resource.MaybeVersionedURI(tc.res)
+
+			if diff := cmp.Diff(got, tc.want, protocmp.Transform()); diff != "" {
+				t.Fatalf("MaybeVersionedURI(%s): (-got, +want):\n%s", tc.name, diff)
 			}
 		})
 	}
@@ -541,7 +579,7 @@ func TestGetIdentifier_nil(t *testing.T) {
 				t.Errorf("got nil, want error")
 			}
 
-			wanterr := "Resource does not implement GetIdentifier()"
+			wanterr := "ResourceType does not implement GetIdentifier()"
 			if !strings.Contains(err.Error(), wanterr) {
 				t.Errorf("got %#v, want %#v", err.Error(), wanterr)
 			}

@@ -162,25 +162,56 @@ func SubsetOf(ctx *expr.Context, input system.Collection, args ...expr.Expressio
 		return nil, err
 	}
 
+	return subset(input, otherCollection)
+}
+
+// SupersetOf returns true if all items in the other collection are members of the
+// input collection. Membership is determined using the equals (=) operation.
+//
+// If the input collection is empty, the result is false.
+// If the other collection is empty, the result is true.
+//
+// https://hl7.org/fhirpath/N1/index.html#supersetofother-collection-boolean
+func SupersetOf(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {
+	// Validate exactly one argument is provided
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%w: received %v arguments, expected 1", ErrWrongArity, len(args))
+	}
+
+	// Evaluate the other collection argument in the current context
+	otherCollection, err := args[0].Evaluate(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if otherCollection is a subset of input
+	// i.e. input is a superset of otherCollection
+	return subset(otherCollection, input)
+}
+
+// subset checks if input collection is a subset of the other collection
+// using FHIRPath equality semantics.
+// It returns a Collection containing a single Boolean result.
+func subset(input system.Collection, other system.Collection) (system.Collection, error) {
 	// Empty input collection is always a subset (conceptually true)
 	if input.IsEmpty() {
 		return system.Collection{system.Boolean(true)}, nil
 	}
 
 	// Non-empty input with empty other collection means false
-	if otherCollection.IsEmpty() {
+	if other.IsEmpty() {
 		return system.Collection{system.Boolean(false)}, nil
 	}
 
 	// Implement bag semantics using a boolean slice to track used elements.
-	used := make([]bool, len(otherCollection))
+	used := make([]bool, len(other))
 
 	// Check each input element for membership in the other collection
 	for _, inputItem := range input {
 		found := false
 
 		// Search for an unused matching element in the other collection
-		for i, otherItem := range otherCollection {
+		for i, otherItem := range other {
 			// Skip if this element has already been used (bag semantics)
 			if used[i] {
 				continue

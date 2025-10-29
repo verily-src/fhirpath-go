@@ -35,6 +35,8 @@ type ResourceFieldRefs struct {
 		Resource protoreflect.FieldDescriptor
 	}
 
+	DummyResource proto.Message
+
 	// New is a function that will create a new instance of this FHIR Resource.
 	New func() proto.Message
 }
@@ -200,6 +202,7 @@ func init() {
 		fields := &ResourceFieldRefs{}
 		fields.ContainedResource.Resource = getContainedResourceOneOf(msg)
 		fields.New = newProto(msg)
+		fields.DummyResource = msg
 		Resources[name] = fields
 	}
 	for _, msg := range dummyElements {

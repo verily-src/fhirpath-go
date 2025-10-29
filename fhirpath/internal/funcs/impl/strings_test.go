@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
@@ -1243,6 +1245,193 @@ func TestJoin(t *testing.T) {
 			}
 			if !cmp.Equal(tc.want, got) {
 				t.Errorf("Join returned unexpected result: got %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSplit(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   system.Collection
+		args    []expr.Expression
+		want    system.Collection
+		wantErr error
+	}{
+		{
+			name:  "returns empty for empty input",
+			input: system.Collection{},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want:    system.Collection{},
+			wantErr: nil,
+		},
+		{
+			name:  "returns empty for empty separator arg",
+			input: system.Collection{system.String("apple,banana,cherry")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{},
+			},
+			want:    system.Collection{},
+			wantErr: nil,
+		},
+		{
+			name:  "splits string by comma separator",
+			input: system.Collection{system.String("apple,banana,cherry")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want: system.Collection{
+				system.String("apple"),
+				system.String("banana"),
+				system.String("cherry"),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "splits string by space separator",
+			input: system.Collection{system.String("hello world test")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(" ")},
+			},
+			want: system.Collection{
+				system.String("hello"),
+				system.String("world"),
+				system.String("test"),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "returns single string if separator not found",
+			input: system.Collection{system.String("nospaces")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(" ")},
+			},
+			want: system.Collection{
+				system.String("nospaces"),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "handles empty string input",
+			input: system.Collection{system.String("")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want: system.Collection{
+				system.String(""),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "handles consecutive separators",
+			input: system.Collection{system.String("a,,b")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want: system.Collection{
+				system.String("a"),
+				system.String(""),
+				system.String("b"),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "splits by multi-character separator",
+			input: system.Collection{system.String("one::two::three")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String("::")},
+			},
+			want: system.Collection{
+				system.String("one"),
+				system.String("two"),
+				system.String("three"),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "handles separator at beginning and end",
+			input: system.Collection{system.String(",start,end,")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want: system.Collection{
+				system.String(""),
+				system.String("start"),
+				system.String("end"),
+				system.String(""),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "splits by empty string separator yields characters",
+			input: system.Collection{system.String("abc")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String("")},
+			},
+			want: system.Collection{
+				system.String("a"),
+				system.String("b"),
+				system.String("c"),
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "errors if input length is more than 1",
+			input: system.Collection{system.String("apple,banana,cherry"), system.String("apple,banana,cherry")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want:    nil,
+			wantErr: impl.ErrNotSingleton,
+		},
+		{
+			name:  "errors if input is not a string",
+			input: system.Collection{system.Integer(123)},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+			},
+			want:    nil,
+			wantErr: system.ErrNotConvertible,
+		},
+		{
+			name:    "errors if args length is not 1",
+			input:   system.Collection{system.String("apple,banana,cherry")},
+			args:    []expr.Expression{},
+			want:    nil,
+			wantErr: impl.ErrWrongArity,
+		},
+		{
+			name:  "errors if args length is more than 1",
+			input: system.Collection{system.String("apple,banana,cherry")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.String(",")},
+				&expr.LiteralExpression{Literal: system.String(";")},
+			},
+			want:    nil,
+			wantErr: impl.ErrWrongArity,
+		},
+		{
+			name:  "errors if arg is not a string",
+			input: system.Collection{system.String("apple,banana,cherry")},
+			args: []expr.Expression{
+				&expr.LiteralExpression{Literal: system.Integer(123)},
+			},
+			want:    nil,
+			wantErr: system.ErrNotConvertible,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := impl.Split(&expr.Context{}, tc.input, tc.args...)
+
+			if !cmp.Equal(err, tc.wantErr, cmpopts.EquateErrors()) {
+				t.Fatalf("Split got unexpected error: got %v, want %v", err, tc.wantErr)
+			}
+			if !cmp.Equal(tc.want, got) {
+				t.Errorf("Split returned unexpected result: got %v, want %v", got, tc.want)
 			}
 		})
 	}

@@ -440,6 +440,18 @@ var experimentalTable = FunctionTable{
 		1,
 		false,
 	},
+	"memberOf": Function{
+		impl.MemberOf,
+		1,
+		1,
+		false,
+	},
+	"split": Function{
+		impl.Split,
+		1,
+		1,
+		false,
+	},
 }
 
 // Clone returns a deep copy of the base

@@ -1,9 +1,12 @@
 package resource_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/verily-src/fhirpath-go/internal/fhirtest"
 	"github.com/verily-src/fhirpath-go/internal/resource"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -84,5 +87,48 @@ func TestCanonicalIdentity(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestIsCanonicalResourceType(t *testing.T) {
+	wantTypes := []string{
+		"ActivityDefinition",
+		"CapabilityStatement",
+		"ChargeItemDefinition",
+		"CodeSystem",
+		"CompartmentDefinition",
+		"ConceptMap",
+		"Contract",
+		"EffectEvidenceSynthesis",
+		"EventDefinition",
+		"Evidence",
+		"EvidenceVariable",
+		"ExampleScenario",
+		"GraphDefinition",
+		"ImplementationGuide",
+		"Library",
+		"Measure",
+		"MessageDefinition",
+		"OperationDefinition",
+		"PlanDefinition",
+		"Questionnaire",
+		"ResearchDefinition",
+		"ResearchElementDefinition",
+		"RiskEvidenceSynthesis",
+		"SearchParameter",
+		"StructureDefinition",
+		"StructureMap",
+		"TerminologyCapabilities",
+		"TestScript",
+		"ValueSet",
+	}
+	gotTypes := []string{}
+	for name := range fhirtest.Resources {
+		if resource.IsCanonicalType(name) {
+			gotTypes = append(gotTypes, name)
+		}
+	}
+	if diff := cmp.Diff(wantTypes, gotTypes, cmpopts.SortSlices(strings.Compare)); diff != "" {
+		t.Errorf("IsCanonicalType: %v", diff)
 	}
 }

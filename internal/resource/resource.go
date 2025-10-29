@@ -197,6 +197,30 @@ func VersionedURIString(resource fhir.Resource) (string, bool) {
 	return fmt.Sprintf("%v/%v/_history/%v", TypeOf(resource), id, vID), true
 }
 
+// MaybeVersionedURI returns the versioned URI if the resource has a version ID,
+// otherwise it returns the unversioned URI.
+//
+// If the resource is nil, this will return a nil URI.
+func MaybeVersionedURI(resource fhir.Resource) *dtpb.Uri {
+	uri := MaybeVersionedURIString(resource)
+	if uri == "" {
+		return nil
+	}
+	return fhir.URI(uri)
+}
+
+// MaybeVersionedURIString returns the versioned URI string if the resource has
+// a version ID, otherwise it returns the unversioned URI string.
+//
+// If the resource is nil, this will return an empty string.
+func MaybeVersionedURIString(resource fhir.Resource) string {
+	uri, ok := VersionedURIString(resource)
+	if ok {
+		return uri
+	}
+	return URIString(resource)
+}
+
 // RemoveDuplicates finds all duplicates of resources -- determined by the
 // same <resource>/<id>/<version-id> -- and removes them, returning an
 // updated list of resources.
@@ -290,7 +314,7 @@ func GetIdentifierList(res fhir.Resource) ([]*dtpb.Identifier, error) {
 	}
 
 	// This is likely a bug / results from passing an unexpected type of resource
-	return nil, fmt.Errorf("%w: Resource does not implement GetIdentifier(): %v", ErrGetIdentifierList, res)
+	return nil, fmt.Errorf("%w: ResourceType does not implement GetIdentifier(): %s", ErrGetIdentifierList, TypeOf(res))
 }
 
 // GetExtensions returns the list of extensions from a resource, if available.

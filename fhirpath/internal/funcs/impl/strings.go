@@ -471,3 +471,63 @@ func Join(ctx *expr.Context, input system.Collection, args ...expr.Expression) (
 	}
 	return system.Collection{system.String(strings.Join(strs, delimiter))}, nil
 }
+
+// Split splits the input string by the specified separator and returns a collection of strings.
+//
+// Syntax: input.split(separator)
+//
+// Examples:
+//
+//	empty.split(',')               -> []                   (empty input produces empty collection)
+//	'a,b,c'.split(empty)           -> []                   (empty separator argument produces empty collection)
+//	''.split(',')                  -> ['']                 (empty string produces single empty element)
+//	'a,b,c'.split(',')             -> ['a', 'b', 'c']      (single-char separator)
+//	'a::b::c'.split('::')          -> ['a', 'b', 'c']      (multi-char separator)
+//	patient.reference.split('/')   -> ['Patient', '12345'] (e.g. 'Patient/12345')
+//	'abc'.split('')                -> ['a', 'b', 'c']      (empty separator splits to chars)
+//	'abc'.split(',')               -> ['abc']              (no split occurs)
+func Split(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {
+	// Validate single argument (separator)
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%w: received %v arguments, expected 1", ErrWrongArity, len(args))
+	}
+
+	if input.IsEmpty() {
+		// Empty input returns empty collection
+		return system.Collection{}, nil
+	}
+
+	// Validate single string input
+	if !input.IsSingleton() {
+		return nil, fmt.Errorf("%w: input has %d elements", ErrNotSingleton, len(input))
+	}
+	fullString, err := input.ToString()
+	if err != nil {
+		return nil, err
+	}
+
+	// Evaluate the separator argument
+	argValues, err := args[0].Evaluate(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	if argValues.IsEmpty() {
+		// Empty separator argument returns empty collection
+		return system.Collection{}, nil
+	}
+	if !argValues.IsSingleton() {
+		return nil, fmt.Errorf("%w: separator has %d elements", ErrNotSingleton, len(argValues))
+	}
+	separator, err := argValues.ToString()
+	if err != nil {
+		return nil, err
+	}
+
+	// Split the string and return collection of strings
+	parts := strings.Split(fullString, separator)
+	result := make(system.Collection, len(parts))
+	for i, part := range parts {
+		result[i] = system.String(part)
+	}
+	return result, nil
+}

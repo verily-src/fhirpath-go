@@ -7,6 +7,7 @@ since this will simplify discovery of evaluation-specific options.
 package evalopts
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/opts"
 	"github.com/verily-src/fhirpath-go/fhirpath/resolver"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/fhirpath/terminology"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 )
 
@@ -78,6 +80,22 @@ func validateType(input any) error {
 func WithResolver(resolver resolver.Resolver) opts.EvaluateOption {
 	return opts.Transform(func(cfg *opts.EvaluateConfig) error {
 		cfg.Context.Resolver = resolver
+		return nil
+	})
+}
+
+// WithTerminologyService returns an EvaluateOption that sets a Terminology Service in the context
+func WithTerminologyService(termService terminology.Service) opts.EvaluateOption {
+	return opts.Transform(func(cfg *opts.EvaluateConfig) error {
+		cfg.Context.TermService = termService
+		return nil
+	})
+}
+
+// WithContext returns an EvaluateOption that sets the Golang context.Context in the expr.Context
+func WithContext(ctx context.Context) opts.EvaluateOption {
+	return opts.Transform(func(cfg *opts.EvaluateConfig) error {
+		cfg.Context.GoContext = ctx
 		return nil
 	})
 }
