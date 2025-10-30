@@ -15,7 +15,7 @@ var (
 	ErrNotSupported       = errors.New("Not Supported, memberOf must be called on a single Coding or a CodeableConcept")
 )
 
-// MemberOf takes a Coding or a Codeable concept and a ValueSet internal id
+// MemberOf takes a Coding or a CodeableConcept and a ValueSet internal ID
 // and determines if the coding of any of the coding is inside the ValueSet
 func MemberOf(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {
 	if length := len(args); length != 1 {
@@ -56,7 +56,7 @@ func MemberOf(ctx *expr.Context, input system.Collection, args ...expr.Expressio
 			validateResult = result
 
 		case *dtpb.CodeableConcept:
-			// If it's a Codeable Concept, we will checking the coding inside one by one
+			// If it's a CodeableConcept, check the coding inside one by one
 			for _, coding := range res.GetCoding() {
 				result, err := validateCoding(ctx, coding.GetCode().GetValue(), coding.GetSystem().GetValue(), valueSetId)
 				if err != nil {

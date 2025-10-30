@@ -28,7 +28,6 @@ type CanonicalIdentity struct {
 }
 
 // canonicalTypeMatcher is used to identify if a resource is a canonical resource.
-// This
 type canonicalTypeMatcher interface {
 	GetUrl() *dtpb.Uri
 	GetVersion() *dtpb.String

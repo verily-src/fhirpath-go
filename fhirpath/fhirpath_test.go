@@ -1130,6 +1130,16 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			wantCollection:  system.Collection{system.String("Chu-Chu")},
 			compileOptions:  []fhirpath.CompileOption{compopts.WithExperimentalFuncs()},
 		},
+		{
+			name:            "returns the distinct union of two sets of names",
+			inputPath:       "Patient.name.given | Patient.name.family",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection: system.Collection{
+				fhir.String("Senpai"),
+				fhir.String("Kang"),
+				fhir.String("Chu"),
+			},
+		},
 	}
 
 	testEvaluate(t, testCases)
@@ -1214,6 +1224,61 @@ func TestTypeExpression_Evaluates(t *testing.T) {
 			inputPath:       "@2000-12-05 as Date",
 			inputCollection: []fhirpath.Resource{},
 			wantCollection:  system.Collection{system.MustParseDate("2000-12-05")},
+		},
+	}
+
+	testEvaluate(t, testCases)
+}
+
+func TestMembershipExpression_Evaluates(t *testing.T) {
+	testCases := []evaluateTestCase{
+		{
+			name:            "returns true for 'in' operator with present value",
+			inputPath:       "'a' in ('a' | 'b' | 'c')",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{system.Boolean(true)},
+		},
+		{
+			name:            "returns false for 'in' operator with absent value",
+			inputPath:       "'d' in ('a' | 'b' | 'c')",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{system.Boolean(false)},
+		},
+		{
+			name:            "returns empty for 'in' operator with empty left side",
+			inputPath:       "{} in ('a' | 'b' | 'c')",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{},
+		},
+		{
+			name:            "returns false for 'in' operator with empty right side",
+			inputPath:       "'a' in {}",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{system.Boolean(false)},
+		},
+		{
+			name:            "returns true for 'contains' operator with present value",
+			inputPath:       "('a' | 'b' | 'c') contains 'b'",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{system.Boolean(true)},
+		},
+		{
+			name:            "returns false for 'contains' operator with absent value",
+			inputPath:       "('a' | 'b' | 'c') contains 'd'",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{system.Boolean(false)},
+		},
+		{
+			name:            "returns false for 'contains' operator with empty left side",
+			inputPath:       "{} contains 'a'",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{system.Boolean(false)},
+		},
+		{
+			name:            "returns empty for 'contains' operator with empty right side",
+			inputPath:       "('a' | 'b' | 'c') contains {}",
+			inputCollection: []fhirpath.Resource{},
+			wantCollection:  system.Collection{},
 		},
 	}
 

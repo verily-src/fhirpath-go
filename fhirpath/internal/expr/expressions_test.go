@@ -1463,3 +1463,187 @@ func TestNegationExpression(t *testing.T) {
 		})
 	}
 }
+
+func TestUnionExpression(t *testing.T) {
+	testCases := []struct {
+		name    string
+		expr    *expr.UnionExpression
+		want    system.Collection
+		wantErr error
+	}{
+		{
+			name: "unions two distinct collections",
+			expr: &expr.UnionExpression{
+				Left:  exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right: exprtest.Return(system.Integer(3), system.Integer(4)),
+			},
+			want: system.Collection{system.Integer(1), system.Integer(2), system.Integer(3), system.Integer(4)},
+		},
+		{
+			name: "unions two collections with overlap",
+			expr: &expr.UnionExpression{
+				Left:  exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right: exprtest.Return(system.Integer(2), system.Integer(3)),
+			},
+			want: system.Collection{system.Integer(1), system.Integer(2), system.Integer(3)},
+		},
+		{
+			name: "unions with an empty collection",
+			expr: &expr.UnionExpression{
+				Left:  exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right: exprtest.Return(),
+			},
+			want: system.Collection{system.Integer(1), system.Integer(2)},
+		},
+		{
+			name: "unions two empty collections",
+			expr: &expr.UnionExpression{
+				Left:  exprtest.Return(),
+				Right: exprtest.Return(),
+			},
+			want: system.Collection{},
+		},
+		{
+			name: "propagates error from left expression",
+			expr: &expr.UnionExpression{
+				Left:  exprtest.Error(errMock),
+				Right: exprtest.Return(system.Integer(1)),
+			},
+			wantErr: errMock,
+		},
+		{
+			name: "propagates error from right expression",
+			expr: &expr.UnionExpression{
+				Left:  exprtest.Return(system.Integer(1)),
+				Right: exprtest.Error(errMock),
+			},
+			wantErr: errMock,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.expr.Evaluate(&expr.Context{}, system.Collection{})
+
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("UnionExpression.Evaluate returned unexpected error: got %v, want %v", err, tc.wantErr)
+			}
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("UnionExpression.Evaluate returned unexpected diff: (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMembershipExpression(t *testing.T) {
+	testCases := []struct {
+		name    string
+		expr    *expr.MembershipExpression
+		want    system.Collection
+		wantErr error
+	}{
+		{
+			name: "item is in collection",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(1)),
+				Right:    exprtest.Return(system.Integer(1), system.Integer(2)),
+				Operator: expr.In,
+			},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "item is not in collection",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(3)),
+				Right:    exprtest.Return(system.Integer(1), system.Integer(2)),
+				Operator: expr.In,
+			},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "left operand is empty",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(),
+				Right:    exprtest.Return(system.Integer(1), system.Integer(2)),
+				Operator: expr.In,
+			},
+			want: system.Collection{},
+		},
+		{
+			name: "left operand is not a singleton",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right:    exprtest.Return(system.Integer(1), system.Integer(2)),
+				Operator: expr.In,
+			},
+			wantErr: expr.ErrNotSingleton,
+		},
+		{
+			name: "collection contains item",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right:    exprtest.Return(system.Integer(1)),
+				Operator: expr.Contains,
+			},
+			want: system.Collection{system.Boolean(true)},
+		},
+		{
+			name: "collection does not contain item",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right:    exprtest.Return(system.Integer(3)),
+				Operator: expr.Contains,
+			},
+			want: system.Collection{system.Boolean(false)},
+		},
+		{
+			name: "right operand is empty",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right:    exprtest.Return(),
+				Operator: expr.Contains,
+			},
+			want: system.Collection{},
+		},
+		{
+			name: "right operand is not a singleton",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(1), system.Integer(2)),
+				Right:    exprtest.Return(system.Integer(1), system.Integer(2)),
+				Operator: expr.Contains,
+			},
+			wantErr: expr.ErrNotSingleton,
+		},
+		{
+			name: "propagates error from left expression",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Error(errMock),
+				Right:    exprtest.Return(system.Integer(1)),
+				Operator: expr.In,
+			},
+			wantErr: errMock,
+		},
+		{
+			name: "propagates error from right expression",
+			expr: &expr.MembershipExpression{
+				Left:     exprtest.Return(system.Integer(1)),
+				Right:    exprtest.Error(errMock),
+				Operator: expr.In,
+			},
+			wantErr: errMock,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.expr.Evaluate(&expr.Context{}, system.Collection{})
+
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("MembershipExpression.Evaluate returned unexpected error: got %v, want %v", err, tc.wantErr)
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("MembershipExpression.Evaluate returned unexpected diff: (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}

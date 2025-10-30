@@ -808,3 +808,76 @@ func (e *NegationExpression) Evaluate(ctx *Context, input system.Collection) (sy
 }
 
 var _ Expression = (*NegationExpression)(nil)
+
+// UnionExpression combines two collections into a single collection, retaining only distinct elements.
+type UnionExpression struct {
+	Left  Expression
+	Right Expression
+}
+
+// MembershipExpression enables evaluation of the "in" and "contains" operators.
+type MembershipExpression struct {
+	Left     Expression
+	Right    Expression
+	Operator Operator
+}
+
+// Evaluate evaluates the left and right subexpressions and performs a membership check
+// according to the FHIRPath specification for 'in' and 'contains'.
+func (e *MembershipExpression) Evaluate(ctx *Context, input system.Collection) (system.Collection, error) {
+	leftResult, err := e.Left.Evaluate(ctx.Clone(), input)
+	if err != nil {
+		return nil, err
+	}
+	rightResult, err := e.Right.Evaluate(ctx.Clone(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	switch e.Operator {
+	case In:
+		if leftResult.IsEmpty() {
+			return system.Collection{}, nil
+		}
+		if !leftResult.IsSingleton() {
+			return nil, fmt.Errorf("%w: 'in' operator requires the left operand to be a singleton, but got %d items", ErrNotSingleton, len(leftResult))
+		}
+		return system.Collection{system.Boolean(rightResult.Contains(leftResult[0]))}, nil
+	case Contains:
+		if rightResult.IsEmpty() {
+			return system.Collection{}, nil
+		}
+		if !rightResult.IsSingleton() {
+			return nil, fmt.Errorf("%w: 'contains' operator requires the right operand to be a singleton, but got %d items", ErrNotSingleton, len(rightResult))
+		}
+		return system.Collection{system.Boolean(leftResult.Contains(rightResult[0]))}, nil
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrInvalidOperator, e.Operator)
+	}
+}
+
+var _ Expression = (*MembershipExpression)(nil)
+
+// Evaluate executes the union expression by evaluating both the left and right expressions,
+// and then combining their results into a single collection with duplicates removed.
+func (e *UnionExpression) Evaluate(ctx *Context, input system.Collection) (system.Collection, error) {
+	leftResult, err := e.Left.Evaluate(ctx.Clone(), input)
+	if err != nil {
+		return nil, err
+	}
+	rightResult, err := e.Right.Evaluate(ctx.Clone(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	// makes sure result is not nil if both inputs are empty or nil
+	result := append(system.Collection{}, leftResult...)
+	for _, item := range rightResult {
+		if !result.Contains(item) {
+			result = append(result, item)
+		}
+	}
+	return result, nil
+}
+
+var _ Expression = (*UnionExpression)(nil)
