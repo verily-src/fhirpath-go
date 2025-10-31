@@ -62,7 +62,12 @@ var baseTable = FunctionTable{
 		1,
 		false,
 	},
-	"supersetOf": notImplemented,
+	"supersetOf": Function{
+		impl.SupersetOf,
+		1,
+		1,
+		false,
+	},
 	"count": Function{
 		impl.Count,
 		0,

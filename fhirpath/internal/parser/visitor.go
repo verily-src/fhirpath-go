@@ -157,7 +157,17 @@ func (v *FHIRPathVisitor) VisitMultiplicativeExpression(ctx *grammar.Multiplicat
 }
 
 func (v *FHIRPathVisitor) VisitUnionExpression(ctx *grammar.UnionExpressionContext) interface{} {
-	return &VisitResult{nil, errNotSupported}
+	leftResult := v.Visit(ctx.Expression(0)).(*VisitResult)
+	if leftResult.Error != nil {
+		return &VisitResult{nil, leftResult.Error}
+	}
+	rightResult := v.clone().Visit(ctx.Expression(1)).(*VisitResult)
+	if rightResult.Error != nil {
+		return &VisitResult{nil, rightResult.Error}
+	}
+
+	expression := &expr.UnionExpression{Left: leftResult.Result, Right: rightResult.Result}
+	return v.transformedVisitResult(expression)
 }
 
 func (v *FHIRPathVisitor) VisitOrExpression(ctx *grammar.OrExpressionContext) interface{} {
@@ -191,7 +201,19 @@ func (v *FHIRPathVisitor) VisitAndExpression(ctx *grammar.AndExpressionContext) 
 }
 
 func (v *FHIRPathVisitor) VisitMembershipExpression(ctx *grammar.MembershipExpressionContext) interface{} {
-	return &VisitResult{nil, errNotSupported}
+	leftResult := v.Visit(ctx.Expression(0)).(*VisitResult)
+	if leftResult.Error != nil {
+		return &VisitResult{nil, leftResult.Error}
+	}
+	rightResult := v.clone().Visit(ctx.Expression(1)).(*VisitResult)
+	if rightResult.Error != nil {
+		return &VisitResult{nil, rightResult.Error}
+	}
+
+	operator := expr.Operator(ctx.GetChild(1).(antlr.TerminalNode).GetText())
+
+	expression := &expr.MembershipExpression{Left: leftResult.Result, Right: rightResult.Result, Operator: operator}
+	return v.transformedVisitResult(expression)
 }
 
 func (v *FHIRPathVisitor) VisitInequalityExpression(ctx *grammar.InequalityExpressionContext) interface{} {
