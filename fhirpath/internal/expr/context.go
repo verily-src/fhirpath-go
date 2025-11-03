@@ -1,10 +1,12 @@
 package expr
 
 import (
+	"context"
 	"time"
 
 	"github.com/verily-src/fhirpath-go/fhirpath/resolver"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/fhirpath/terminology"
 )
 
 // Context holds the global time and external constant
@@ -32,6 +34,32 @@ type Context struct {
 	// Permissive is a legacy option to allow FHIRpaths with *invalid* fields to be
 	// compiled (to reduce breakages).
 	Permissive bool
+	// Service is an optional mechanism for providing a terminology service
+	// which can be used to validate code in valueSet
+	TermService terminology.Service
+
+	// GoContext is a context from the calling main function
+	GoContext context.Context
+}
+
+// Deadline wraps the Deadline() method of context.Context. More information available at https://pkg.go.dev/context
+func (c *Context) Deadline() (deadline time.Time, ok bool) {
+	return c.GoContext.Deadline()
+}
+
+// Done wraps the Done() method of context.Context. More information available at https://pkg.go.dev/context
+func (c *Context) Done() <-chan struct{} {
+	return c.GoContext.Done()
+}
+
+// Err wraps the Err() method of context.Context. More information available at https://pkg.go.dev/context
+func (c *Context) Err() error {
+	return c.GoContext.Err()
+}
+
+// Value wraps the Value() method of context.Context. More information available at https://pkg.go.dev/context
+func (c *Context) Value(key any) any {
+	return c.GoContext.Value(key)
 }
 
 // Clone copies this Context object to produce a new instance.
@@ -42,6 +70,8 @@ func (c *Context) Clone() *Context {
 		LastResult:        c.LastResult,
 		Resolver:          c.Resolver,
 		Permissive:        c.Permissive,
+		TermService:       c.TermService,
+		GoContext:         c.GoContext,
 	}
 }
 

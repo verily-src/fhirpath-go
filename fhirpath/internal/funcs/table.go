@@ -62,7 +62,12 @@ var baseTable = FunctionTable{
 		1,
 		false,
 	},
-	"supersetOf": notImplemented,
+	"supersetOf": Function{
+		impl.SupersetOf,
+		1,
+		1,
+		false,
+	},
 	"count": Function{
 		impl.Count,
 		0,
@@ -437,6 +442,18 @@ var experimentalTable = FunctionTable{
 	"join": Function{
 		impl.Join,
 		0,
+		1,
+		false,
+	},
+	"memberOf": Function{
+		impl.MemberOf,
+		1,
+		1,
+		false,
+	},
+	"split": Function{
+		impl.Split,
+		1,
 		1,
 		false,
 	},

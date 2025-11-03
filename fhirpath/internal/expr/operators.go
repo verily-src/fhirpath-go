@@ -23,6 +23,8 @@ const (
 	Div           = "/"
 	FloorDiv      = "div"
 	Mod           = "mod"
+	In            = "in"
+	Contains      = "contains"
 )
 
 // Operator represents a valid expression operator.

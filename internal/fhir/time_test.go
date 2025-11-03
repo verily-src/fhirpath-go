@@ -350,3 +350,92 @@ func TestMustParseInstant_BadInput_Panics(t *testing.T) {
 	// If code reaches here, it means we didn't panic
 	t.Errorf("MustParseInstant: expected panic")
 }
+
+func TestDate(t *testing.T) {
+	testCases := []struct {
+		name          string
+		input         time.Time
+		wantValue     int64
+		wantPrecision dtpb.Date_Precision
+		wantTimezone  string
+	}{
+		{
+			name:      "UTC",
+			input:     time.Date(2022, 1, 2, 0, 0, 0, 0, time.UTC),
+			wantValue: time.Date(2022, 1, 2, 0, 0, 0, 0, time.UTC).UnixMicro(),
+		},
+		{
+			name:      "PositiveOffset",
+			input:     time.Date(2022, 1, 2, 0, 0, 0, 0, time.FixedZone("+0530", 5*3600+30*60)),
+			wantValue: time.Date(2022, 1, 2, 0, 0, 0, 0, time.FixedZone("+0530", 5*3600+30*60)).UnixMicro(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := fhir.Date(tc.input)
+
+			if got.ValueUs != tc.wantValue {
+				t.Errorf("Date.ValueUs: got %v, want %v", got.ValueUs, tc.wantValue)
+			}
+		})
+	}
+}
+
+func TestDateTime(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     time.Time
+		wantValue int64
+	}{
+		{
+			name:      "UTC",
+			input:     time.Date(2022, 1, 2, 3, 4, 5, 123456, time.UTC),
+			wantValue: time.Date(2022, 1, 2, 3, 4, 5, 123456, time.UTC).UnixMicro(),
+		},
+		{
+			name:      "NegativeOffset",
+			input:     time.Date(2022, 1, 2, 3, 4, 5, 654321, time.FixedZone("-0800", -8*3600)),
+			wantValue: time.Date(2022, 1, 2, 3, 4, 5, 654321, time.FixedZone("-0800", -8*3600)).UnixMicro(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := fhir.DateTime(tc.input)
+
+			if got.ValueUs != tc.wantValue {
+				t.Errorf("DateTime.ValueUs: got %v, want %v", got.ValueUs, tc.wantValue)
+			}
+		})
+	}
+}
+
+func TestInstant(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     time.Time
+		wantValue int64
+	}{
+		{
+			name:      "UTC",
+			input:     time.Date(2022, 1, 2, 3, 4, 5, 789000, time.UTC),
+			wantValue: time.Date(2022, 1, 2, 3, 4, 5, 789000, time.UTC).UnixMicro(),
+		},
+		{
+			name:      "HalfHourOffset",
+			input:     time.Date(2022, 1, 2, 3, 4, 5, 789000, time.FixedZone("+0330", 3*3600+30*60)),
+			wantValue: time.Date(2022, 1, 2, 3, 4, 5, 789000, time.FixedZone("+0330", 3*3600+30*60)).UnixMicro(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := fhir.Instant(tc.input)
+
+			if got.ValueUs != tc.wantValue {
+				t.Errorf("Instant.ValueUs: got %v, want %v", got.ValueUs, tc.wantValue)
+			}
+		})
+	}
+}
