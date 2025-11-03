@@ -56,7 +56,7 @@ func TestBundleResolver_Resolve(t *testing.T) {
 	patient123Latest := &ppb.Patient{
 		Id: fhir.ID("123"),
 		Meta: &dtpb.Meta{
-			LastUpdated: &dtpb.Instant{ValueUs: 500},
+			LastUpdated: &dtpb.Instant{ValueUs: 5000},
 		},
 	}
 

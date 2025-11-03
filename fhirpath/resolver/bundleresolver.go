@@ -173,7 +173,7 @@ func getLatestResource(resources []fhir.Resource) (fhir.Resource, error) {
 			return nil, ErrMissingMetaOrLastUpdated
 		}
 		resLastUpdated := res.GetMeta().GetLastUpdated().GetValueUs()
-		if resolvedLastUpdated > resLastUpdated {
+		if resolvedLastUpdated < resLastUpdated {
 			resolvedResource = res
 			resolvedLastUpdated = resLastUpdated
 		}
