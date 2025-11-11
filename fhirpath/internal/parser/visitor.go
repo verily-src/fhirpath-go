@@ -445,10 +445,8 @@ func (v *FHIRPathVisitor) VisitExternalConstant(ctx *grammar.ExternalConstantCon
 func (v *FHIRPathVisitor) VisitMemberInvocation(ctx *grammar.MemberInvocationContext) interface{} {
 	identifier := ctx.GetText()
 	if ctx.Identifier().DELIMITEDIDENTIFIER() != nil {
-		if len(identifier) < 2 || identifier[0] != '`' || identifier[len(identifier)-1] != '`' {
-			return &VisitResult{nil, fmt.Errorf("%w: %s", errInvalidDelimitedIdentifier, identifier)}
-		}
-		identifier = identifier[1 : len(identifier)-1]
+		identifier = strings.TrimPrefix(identifier, "`")
+		identifier = strings.TrimSuffix(identifier, "`")
 	}
 	var expression expr.Expression
 

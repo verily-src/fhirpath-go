@@ -471,6 +471,12 @@ func TestEvaluate_PathSelection_ReturnsResult(t *testing.T) {
 			inputCollection: []fhirpath.Resource{patientChu},
 			wantCollection:  system.Collection{fhir.Xhtml("patient chu record")},
 		},
+		{
+			name:            "escaping backticks",
+			inputPath:       "Patient.text.`div`.contains('\\`')",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{system.Boolean(false)},
+		},
 	}
 	testEvaluate(t, testCases)
 }
