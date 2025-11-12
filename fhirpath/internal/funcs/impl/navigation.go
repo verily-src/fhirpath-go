@@ -44,7 +44,7 @@ func Children(ctx *expr.Context, input system.Collection, args ...expr.Expressio
 			}
 		}
 		for _, f := range fields {
-			fe := expr.FieldExpression{FieldName: f, Permissive: ctx.Permissive}
+			fe := expr.FieldExpression{FieldName: f, Permissive: ctx.Permissive, SkipUnknownFields: ctx.SkipUnknownFields}
 			messages, err := fe.Evaluate(ctx, system.Collection{base})
 			if err != nil {
 				return nil, err

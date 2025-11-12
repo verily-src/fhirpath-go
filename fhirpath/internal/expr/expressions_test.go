@@ -211,8 +211,8 @@ func TestFieldExpression_Gets_DesiredField(t *testing.T) {
 			wantCollection: system.Collection{patientBirthDay},
 		},
 		{
-			name:           "(Legacy) input item doesn't have field",
-			fieldExp:       &expr.FieldExpression{FieldName: "given", Permissive: true},
+			name:           "input item doesn't have field - skipped",
+			fieldExp:       &expr.FieldExpression{FieldName: "given", SkipUnknownFields: true},
 			input:          system.Collection{patientFirstHumanName, patientContactPoint[0]},
 			wantCollection: system.Collection{patientFirstHumanName.Given[0], patientFirstHumanName.Given[1]},
 		},

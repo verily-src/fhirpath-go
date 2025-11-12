@@ -31,7 +31,7 @@ func Select(ctx *expr.Context, input system.Collection, args ...expr.Expression)
 		result = append(result, output...)
 	}
 	// Raise field errors if one was raised for each input.
-	if len(input) > 0 && len(fieldErrs) == len(input) {
+	if len(input) > 0 && len(fieldErrs) == len(input) && !ctx.SkipUnknownFields {
 		return nil, errors.Join(fieldErrs...)
 	}
 	return result, nil

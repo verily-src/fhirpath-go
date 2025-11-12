@@ -1091,10 +1091,10 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			wantCollection:  system.Collection{system.Boolean(false), system.Boolean(true)},
 		},
 		{
-			name:            "(legacy) filtering nested fields by field name",
+			name:            "filtering nested fields by field name",
 			inputPath:       "descendants().family",
 			inputCollection: []fhirpath.Resource{patientChu},
-			compileOptions:  []fhirpath.CompileOption{compopts.Permissive()},
+			compileOptions:  []fhirpath.CompileOption{compopts.SkipUnknownFields()},
 			wantCollection:  system.Collection{patientChu.Name[0].Family, patientChu.Name[1].Family, patientChu.Contact[0].Name.Family},
 		},
 		{

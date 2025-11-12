@@ -34,6 +34,11 @@ type Context struct {
 	// Permissive is a legacy option to allow FHIRpaths with *invalid* fields to be
 	// compiled (to reduce breakages).
 	Permissive bool
+
+	// SkipUnknownFields is an option that allows for skipping unknown fields and returning
+	// an empty collection instead of throwing an error.
+	SkipUnknownFields bool
+
 	// Service is an optional mechanism for providing a terminology service
 	// which can be used to validate code in valueSet
 	TermService terminology.Service
@@ -70,6 +75,7 @@ func (c *Context) Clone() *Context {
 		LastResult:        c.LastResult,
 		Resolver:          c.Resolver,
 		Permissive:        c.Permissive,
+		SkipUnknownFields: c.SkipUnknownFields,
 		TermService:       c.TermService,
 		GoContext:         c.GoContext,
 	}

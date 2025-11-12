@@ -17,19 +17,19 @@ import (
 )
 
 var (
-	errNotSupported               = errors.New("expression not currently supported")
-	errTooManyQualifiers          = errors.New("too many type qualifiers")
-	errVisitingChildren           = errors.New("error while visiting child expressions")
-	errUnresolvedFunction         = errors.New("function identifier can't be resolved")
-	errInvalidDelimitedIdentifier = errors.New("invalid delimited identifier")
+	errNotSupported       = errors.New("expression not currently supported")
+	errTooManyQualifiers  = errors.New("too many type qualifiers")
+	errVisitingChildren   = errors.New("error while visiting child expressions")
+	errUnresolvedFunction = errors.New("function identifier can't be resolved")
 )
 
 type FHIRPathVisitor struct {
 	*grammar.BasefhirpathVisitor
-	visitedRoot bool
-	Functions   funcs.FunctionTable
-	Transform   VisitorTransform
-	Permissive  bool
+	visitedRoot       bool
+	Functions         funcs.FunctionTable
+	Transform         VisitorTransform
+	Permissive        bool
+	SkipUnknownFields bool
 }
 
 type VisitResult struct {
@@ -45,10 +45,11 @@ type typeResult struct {
 // clone produces a shallow-clone of the visitor, to be used when visiting sub-expressions.
 func (v *FHIRPathVisitor) clone() *FHIRPathVisitor {
 	return &FHIRPathVisitor{
-		Functions:   v.Functions,
-		Transform:   v.Transform,
-		Permissive:  v.Permissive,
-		visitedRoot: false,
+		Functions:         v.Functions,
+		Transform:         v.Transform,
+		Permissive:        v.Permissive,
+		SkipUnknownFields: v.SkipUnknownFields,
+		visitedRoot:       false,
 	}
 }
 
@@ -454,7 +455,7 @@ func (v *FHIRPathVisitor) VisitMemberInvocation(ctx *grammar.MemberInvocationCon
 		expression = &expr.TypeExpression{Type: identifier}
 		v.visitedRoot = true
 	} else {
-		expression = &expr.FieldExpression{FieldName: identifier, Permissive: v.Permissive}
+		expression = &expr.FieldExpression{FieldName: identifier, Permissive: v.Permissive, SkipUnknownFields: v.SkipUnknownFields}
 	}
 
 	return v.transformedVisitResult(expression)
@@ -507,9 +508,10 @@ func (v *FHIRPathVisitor) VisitFunction(ctx *grammar.FunctionContext) interface{
 
 		return v.transformedVisitResult(
 			&expr.FunctionExpression{
-				Fn:         fn.Func,
-				Args:       []expr.Expression{&expr.TypeExpression{Type: typeSpecifier.String()}},
-				Permissive: v.Permissive,
+				Fn:                fn.Func,
+				Args:              []expr.Expression{&expr.TypeExpression{Type: typeSpecifier.String()}},
+				Permissive:        v.Permissive,
+				SkipUnknownFields: v.SkipUnknownFields,
 			},
 		)
 	}
@@ -528,7 +530,7 @@ func (v *FHIRPathVisitor) VisitFunction(ctx *grammar.FunctionContext) interface{
 	if len(expressions) < fn.MinArity || len(expressions) > fn.MaxArity {
 		return &VisitResult{nil, fmt.Errorf("%w: input arity outside of function arity bounds", impl.ErrWrongArity)}
 	}
-	return v.transformedVisitResult(&expr.FunctionExpression{Fn: fn.Func, Args: expressions, Permissive: v.Permissive})
+	return v.transformedVisitResult(&expr.FunctionExpression{Fn: fn.Func, Args: expressions, Permissive: v.Permissive, SkipUnknownFields: v.SkipUnknownFields})
 }
 
 func (v *FHIRPathVisitor) VisitParamList(ctx *grammar.ParamListContext) interface{} {

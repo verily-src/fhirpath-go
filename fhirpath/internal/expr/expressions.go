@@ -77,8 +77,9 @@ var _ Expression = (*IdentityExpression)(nil)
 // FieldExpression is the expression that accesses the specified
 // FieldName in the input collection.
 type FieldExpression struct {
-	FieldName  string
-	Permissive bool
+	FieldName         string
+	Permissive        bool
+	SkipUnknownFields bool
 }
 
 // Evaluate filters the input collections by those that contain
@@ -161,7 +162,7 @@ func (e *FieldExpression) Evaluate(ctx *Context, input system.Collection) (syste
 			fieldName = fieldName + "_value"
 			field = reflect.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
 			if field == nil {
-				if e.Permissive {
+				if e.SkipUnknownFields {
 					continue
 				}
 				return nil, fmt.Errorf("%w: %s not a field on %T", ErrInvalidField, fieldName, message)
@@ -445,9 +446,10 @@ var _ Expression = (*EqualityExpression)(nil)
 // FunctionExpression enables evaluation of Function Invocation expressions.
 // It holds the function and function arguments.
 type FunctionExpression struct {
-	Fn         func(*Context, system.Collection, ...Expression) (system.Collection, error)
-	Args       []Expression
-	Permissive bool
+	Fn                func(*Context, system.Collection, ...Expression) (system.Collection, error)
+	Args              []Expression
+	Permissive        bool
+	SkipUnknownFields bool
 }
 
 // Evaluate evaluates the function with respect to its arguments. Returns the result
