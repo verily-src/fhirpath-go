@@ -4,17 +4,18 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr/exprtest"
-	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
-	"github.com/verily-src/fhirpath-go/internal/fhir"
-	"google.golang.org/protobuf/testing/protocmp"
-
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
+
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr/exprtest"
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
+	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
-	"github.com/verily-src/fhirpath-go/fhirpath/internal/funcs/impl"
-	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestConvertsToBoolean(t *testing.T) {
@@ -2238,6 +2239,79 @@ func TestIif(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("Iif() returned unexpected diff (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAs(t *testing.T) {
+	deceased := &ppb.Patient_DeceasedX{
+		Choice: &ppb.Patient_DeceasedX_Boolean{
+			Boolean: fhir.Boolean(true),
+		},
+	}
+
+	testCases := []struct {
+		name    string
+		input   system.Collection
+		args    expr.Expression
+		want    system.Collection
+		wantErr bool
+	}{
+		{
+			name:  "input is of specified type (returns input)",
+			input: system.Collection{fhir.Code("#blessed")},
+			args:  &expr.TypeExpression{Type: "FHIR.code"},
+			want:  system.Collection{fhir.Code("#blessed")},
+		},
+		{
+			name:  "input is not of specified type (returns empty)",
+			input: system.Collection{fhir.Integer(12)},
+			args:  &expr.TypeExpression{Type: "FHIR.string"},
+			want:  system.Collection{},
+		},
+		{
+			name:  "input is empty collection (returns empty)",
+			input: system.Collection{},
+			args:  &expr.TypeExpression{Type: "FHIR.string"},
+			want:  system.Collection{},
+		},
+		{
+			name:  "input is a polymorphic oneOf type",
+			input: system.Collection{deceased},
+			args:  &expr.TypeExpression{Type: "FHIR.boolean"},
+			want:  system.Collection{fhir.Boolean(true)},
+		},
+		{
+			name:  "input is a system type",
+			input: system.Collection{system.Boolean(true)},
+			args:  &expr.TypeExpression{Type: "System.Boolean"},
+			want:  system.Collection{system.Boolean(true)},
+		},
+		{
+			name:  "input is a collection (filters non matching types)",
+			input: system.Collection{system.Boolean(true), system.Integer(1)},
+			args:  &expr.TypeExpression{Type: "System.Integer"},
+			want:  system.Collection{system.Integer(1)},
+		},
+		{
+			name:    "subexpression errors",
+			input:   system.Collection{fhir.Code("#blessed")},
+			args:    exprtest.Error(errors.New("some error")),
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := impl.As(&expr.Context{}, tc.input, tc.args)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("As() error = %v, wantErr %v", err, tc.wantErr)
+				return
+			}
+
+			if diff := cmp.Diff(tc.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("As() returned unexpected diff (-want, +got)\n%s", diff)
 			}
 		})
 	}

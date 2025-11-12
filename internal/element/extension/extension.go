@@ -161,7 +161,18 @@ func Upsert(ext fhir.Extendable, extension *dtpb.Extension) {
 		if currExt.GetUrl().GetValue() == extension.GetUrl().GetValue() {
 			currMessage := currExt.ProtoReflect()
 			valueDesc := currMessage.Descriptor().Fields().ByName("value")
-			currMessage.Set(valueDesc, protoreflect.ValueOfMessage(extension.GetValue().ProtoReflect()))
+			// Only set value if the field exists AND the value is non-nil
+			if valueDesc != nil && extension.GetValue() != nil {
+				currMessage.Set(valueDesc, protoreflect.ValueOfMessage(extension.GetValue().ProtoReflect()))
+				return
+			}
+			// If "value" field does not exist, check for "extension" field and overwrite extensions
+			extDesc := currMessage.Descriptor().Fields().ByName("extension")
+			if extDesc != nil && extension.GetExtension() != nil {
+				currMessage.Set(extDesc, protoreflect.ValueOfList(extension.ProtoReflect().Get(extDesc).List()))
+				return
+			}
+			// If neither field exists, or nothing to set, do nothing
 			return
 		}
 	}
