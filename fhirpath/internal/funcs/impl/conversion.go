@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
+	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
+	"github.com/verily-src/fhirpath-go/internal/fhir"
+	"github.com/verily-src/fhirpath-go/internal/protofields"
 )
 
 // DefaultQuantityUnit is defined by the following FHIRPath rules:
@@ -606,6 +609,53 @@ func Iif(ctx *expr.Context, input system.Collection, args ...expr.Expression) (s
 
 	// Return the true-result collection
 	return args[1].Evaluate(ctx, input)
+}
+
+// As converts the input to the specified type.
+// FHIRPath docs here: https://hl7.org/fhirpath/N1/#astype-type-specifier
+func As(ctx *expr.Context, input system.Collection, args ...expr.Expression) (system.Collection, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("%w: received %v arguments, expected 1", ErrWrongArity, len(args))
+	}
+
+	var typeSpecifier reflection.TypeSpecifier
+	typeExpr, ok := args[0].(*expr.TypeExpression)
+	if !ok {
+		return nil, fmt.Errorf("received invalid argument, expected a type")
+	}
+
+	var err error
+	if parts := strings.Split(typeExpr.Type, "."); len(parts) == 2 {
+		if typeSpecifier, err = reflection.NewQualifiedTypeSpecifier(parts[0], parts[1]); err != nil {
+			return nil, err
+		}
+	} else if typeSpecifier, err = reflection.NewTypeSpecifier(typeExpr.Type); err != nil {
+		return nil, err
+	}
+
+	result := system.Collection{}
+	for _, item := range input {
+		inputType, err := reflection.TypeOf(item)
+		if err != nil {
+			return nil, err
+		}
+
+		if !inputType.Is(typeSpecifier) {
+			continue
+		}
+
+		// attempt to unwrap polymorphic types
+		message, ok := item.(fhir.Base)
+		if !ok {
+			result = append(result, item)
+		} else if oneOf := protofields.UnwrapOneofField(message, "choice"); oneOf != nil {
+			result = append(result, oneOf)
+		} else {
+			result = append(result, item)
+		}
+	}
+
+	return result, nil
 }
 
 func isValidUnitConversion(outputFormat string) bool {

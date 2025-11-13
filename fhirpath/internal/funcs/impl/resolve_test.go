@@ -28,6 +28,16 @@ func TestResolve(t *testing.T) {
 			PatientId: &dtpb.ReferenceId{Value: "123"}},
 	}
 
+	var patientChuRefUri = &dtpb.Reference{
+		Reference: &dtpb.Reference_Uri{
+			Uri: &dtpb.String{Value: "Patient/123"}},
+	}
+
+	var patientChuRefFragment = &dtpb.Reference{
+		Reference: &dtpb.Reference_Fragment{
+			Fragment: &dtpb.String{Value: "123"}},
+	}
+
 	var patientChuUri = &dtpb.Uri{
 		Value: "Patient/123",
 	}
@@ -57,31 +67,43 @@ func TestResolve(t *testing.T) {
 		{
 			name:            "happy path; successful reference resolution",
 			inputCollection: system.Collection{patientChuRef},
-			resolverImpl:    resolvertest.HappyResolver(patientChu),
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("Patient/123", patientChu)),
+			wantCollection:  system.Collection{patientChu},
+		},
+		{
+			name:            "happy path; successful reference with uri resolution",
+			inputCollection: system.Collection{patientChuRefUri},
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("Patient/123", patientChu)),
+			wantCollection:  system.Collection{patientChu},
+		},
+		{
+			name:            "happy path; successful reference with fragment resolution",
+			inputCollection: system.Collection{patientChuRefFragment},
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("#123", patientChu)),
 			wantCollection:  system.Collection{patientChu},
 		},
 		{
 			name:            "happy path; successful uri resolution",
 			inputCollection: system.Collection{patientChuUri},
-			resolverImpl:    resolvertest.HappyResolver(patientChu),
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("Patient/123", patientChu)),
 			wantCollection:  system.Collection{patientChu},
 		},
 		{
 			name:            "happy path; successful string resolution",
 			inputCollection: system.Collection{patientChuString},
-			resolverImpl:    resolvertest.HappyResolver(patientChu),
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("Patient/123", patientChu)),
 			wantCollection:  system.Collection{patientChu},
 		},
 		{
 			name:            "happy path; successful url resolution",
 			inputCollection: system.Collection{patientChuUrl},
-			resolverImpl:    resolvertest.HappyResolver(patientChu),
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("http://example.com/Patient/123", patientChu)),
 			wantCollection:  system.Collection{patientChu},
 		},
 		{
 			name:            "happy path; successful canonical resolution",
 			inputCollection: system.Collection{patientChuCanonical},
-			resolverImpl:    resolvertest.HappyResolver(patientChu),
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("Patient/123", patientChu)),
 			wantCollection:  system.Collection{patientChu},
 		},
 		{
@@ -110,6 +132,18 @@ func TestResolve(t *testing.T) {
 			inputCollection: system.Collection{patientChuRef},
 			resolverImpl:    resolvertest.ErroringResolver(resolveErr),
 			wantErr:         resolveErr,
+		},
+		{
+			name:            "no matching resources - returns empty collection",
+			inputCollection: system.Collection{patientChuRef},
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("Patient/999", patientChu)),
+			wantCollection:  system.Collection{},
+		},
+		{
+			name:            "no matching resources - returns empty collection",
+			inputCollection: system.Collection{patientChuRef},
+			resolverImpl:    resolvertest.NewSimpleResolver(resolvertest.Entry("Patient/999", patientChu)),
+			wantCollection:  system.Collection{},
 		},
 	}
 

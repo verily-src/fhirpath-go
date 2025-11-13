@@ -15,6 +15,38 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
+func TestUpsert_WithNestedExtensions(t *testing.T) {
+	url := "http://example.com/nested"
+	nestedExt1 := extension.New("http://example.com/child1", fhir.String("child1"))
+	nestedExt2 := extension.New("http://example.com/child2", fhir.String("child2"))
+
+	// extWithNested1 has nestedExt1 as child extension
+	extWithNested1 := &dtpb.Extension{
+		Url:       fhir.URI(url),
+		Extension: []*dtpb.Extension{nestedExt1},
+	}
+
+	// extWithNested2 has nestedExt2 as child extension
+	extWithNested2 := &dtpb.Extension{
+		Url:       fhir.URI(url),
+		Extension: []*dtpb.Extension{nestedExt2},
+	}
+
+	person := &prpb.Person{
+		Extension: []*dtpb.Extension{extWithNested1},
+	}
+
+	// Upsert should succeed in replacing nestedExt1 with nestedExt2.
+	extension.Upsert(person, extWithNested2)
+	got := person.GetExtension()
+	if len(got) != 1 {
+		t.Fatalf("Upsert nested: got len %v, want 1", len(got))
+	}
+	if diff := cmp.Diff(got[0].GetExtension(), []*dtpb.Extension{nestedExt2}, protocmp.Transform()); diff != "" {
+		t.Errorf("Upsert nested: (-got,+want):\n%v", diff)
+	}
+}
+
 func isValueXType(element fhir.Element) bool {
 	switch element.(type) {
 	case *dtpb.Base64Binary,

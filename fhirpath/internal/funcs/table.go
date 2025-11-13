@@ -432,6 +432,18 @@ var baseTable = FunctionTable{
 		0,
 		false,
 	},
+	"hasValue": Function{
+		impl.HasValue,
+		0,
+		0,
+		false,
+	},
+	"as": Function{
+		impl.As,
+		1,
+		1,
+		true,
+	},
 }
 
 // ExperimentalTable holds the mapping of all
