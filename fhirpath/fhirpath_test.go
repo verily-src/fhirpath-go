@@ -1070,6 +1070,58 @@ func TestFunctionInvocation_Evaluates(t *testing.T) {
 			wantCollection:  system.Collection{system.Boolean(false), system.Boolean(true)},
 		},
 		{
+			name:            "returns last item repeatedly",
+			inputPath:       "repeat(children().last())",
+			inputCollection: []fhirpath.Resource{patientChu},
+			wantCollection:  system.Collection{patientChu.Contact[0], patientChu.Contact[0].Name, patientChu.Contact[0].Name.Given[0]},
+		},
+		{
+			name:      "returns last Contact repeatedly when multiple Contacts",
+			inputPath: "repeat(children().last())",
+			inputCollection: []fhirpath.Resource{
+				&ppb.Patient{
+					Contact: []*ppb.Patient_Contact{
+						{Name: &dtpb.HumanName{Given: []*dtpb.String{fhir.String("First")}, Family: fhir.String("One")}},
+						{Name: &dtpb.HumanName{Given: []*dtpb.String{fhir.String("Second")}, Family: fhir.String("Two")}},
+					},
+				},
+			},
+			wantCollection: system.Collection{
+				&ppb.Patient_Contact{Name: &dtpb.HumanName{Given: []*dtpb.String{fhir.String("Second")}, Family: fhir.String("Two")}},
+				&dtpb.HumanName{Given: []*dtpb.String{fhir.String("Second")}, Family: fhir.String("Two")},
+				fhir.String("Second"),
+			},
+		},
+		{
+			name:      "returns last Given repeatedly when Contact has multiple Given names",
+			inputPath: "repeat(children().last())",
+			inputCollection: []fhirpath.Resource{
+				&ppb.Patient{
+					Contact: []*ppb.Patient_Contact{
+						{
+							Name: &dtpb.HumanName{
+								Given:  []*dtpb.String{fhir.String("Alpha"), fhir.String("Beta")},
+								Family: fhir.String("Gamma"),
+							},
+						},
+					},
+				},
+			},
+			wantCollection: system.Collection{
+				&ppb.Patient_Contact{
+					Name: &dtpb.HumanName{
+						Given:  []*dtpb.String{fhir.String("Alpha"), fhir.String("Beta")},
+						Family: fhir.String("Gamma"),
+					},
+				},
+				&dtpb.HumanName{
+					Given:  []*dtpb.String{fhir.String("Alpha"), fhir.String("Beta")},
+					Family: fhir.String("Gamma"),
+				},
+				fhir.String("Beta"),
+			},
+		},
+		{
 			name:            "filters child fields with ofType()",
 			inputPath:       "children().ofType(string)",
 			inputCollection: []fhirpath.Resource{patientChu},
