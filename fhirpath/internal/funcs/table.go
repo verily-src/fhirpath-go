@@ -98,7 +98,12 @@ var baseTable = FunctionTable{
 		1,
 		false,
 	},
-	"repeat": notImplemented,
+	"repeat": Function{
+		impl.Repeat,
+		1,
+		1,
+		false,
+	},
 	"ofType": Function{
 		impl.OfType,
 		1,
