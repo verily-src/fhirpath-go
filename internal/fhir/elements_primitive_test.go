@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/verily-src/fhirpath-go/internal/element/canonical"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/slices"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestBase64Binary(t *testing.T) {
@@ -384,6 +386,28 @@ func TestURIFromUUID(t *testing.T) {
 
 			if got, want := got.GetValue(), tc.value.GetValue(); got != want {
 				t.Errorf("URIFromUUID(%v): got %v, want %v", tc.name, got, want)
+			}
+		})
+	}
+}
+
+func TestXhtml(t *testing.T) {
+	testCases := []struct {
+		name  string
+		value string
+	}{
+		{
+			name:  "Basic",
+			value: "xhtml",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			sut := fhir.Xhtml(tc.value)
+
+			if got := sut.GetValue(); !cmp.Equal(got, tc.value) {
+				t.Errorf("Xhtml(%v): got %v, want %v", tc.value, got, tc.value)
 			}
 		})
 	}

@@ -57,6 +57,15 @@ func Permissive() opts.CompileOption {
 	})
 }
 
+// SkipUnknownFields is an option that allows for skipping unknown fields and returning
+// an empty collection instead of throwing an error.
+func SkipUnknownFields() opts.CompileOption {
+	return opts.Transform(func(cfg *opts.CompileConfig) error {
+		cfg.SkipUnknownFields = true
+		return nil
+	})
+}
+
 // WithExperimentalFuncs is an option that enables experimental functions not
 // in the N1 Normative specification.
 func WithExperimentalFuncs() opts.CompileOption {

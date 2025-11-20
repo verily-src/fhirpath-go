@@ -16,6 +16,7 @@ import (
 	"github.com/verily-src/fhirpath-go/fhirpath/resolver"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 	"github.com/verily-src/fhirpath-go/fhirpath/terminology"
+	"github.com/verily-src/fhirpath-go/fhirpath/trace"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 )
 
@@ -88,6 +89,15 @@ func WithResolver(resolver resolver.Resolver) opts.EvaluateOption {
 func WithTerminologyService(termService terminology.Service) opts.EvaluateOption {
 	return opts.Transform(func(cfg *opts.EvaluateConfig) error {
 		cfg.Context.TermService = termService
+		return nil
+	})
+}
+
+// WithTracer returns an EvaluationOption that sets a [trace.Tracer] to use for the "trace"
+// fhirpath function.
+func WithTracer(tracer trace.Tracer) opts.EvaluateOption {
+	return opts.Transform(func(cfg *opts.EvaluateConfig) error {
+		cfg.Context.Tracer = tracer
 		return nil
 	})
 }

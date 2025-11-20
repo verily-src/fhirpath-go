@@ -1,13 +1,14 @@
 package protofields
 
 import (
-	"strings"
-
+	apb "github.com/google/fhir/go/proto/google/fhir/proto/annotations_go_proto"
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	bcrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
-	"github.com/iancoleman/strcase"
-	"github.com/verily-src/fhirpath-go/internal/slices"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/verily-src/fhirpath-go/internal/slices"
+
+	"github.com/iancoleman/strcase"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -105,13 +106,18 @@ func UnwrapOneofField(element proto.Message, fieldName string) proto.Message {
 // Codes with enum values and string values are both considered valid.
 func IsCodeField(message proto.Message) bool {
 	reflect := message.ProtoReflect()
-	name := string(reflect.Descriptor().Name())
+
+	if !proto.HasExtension(reflect.Descriptor().Options(), apb.E_FhirValuesetUrl) {
+		return false
+	}
+
 	field := reflect.Descriptor().Fields().ByName(protoreflect.Name("value"))
 	if field != nil {
 		allowedKinds := []protoreflect.Kind{protoreflect.EnumKind, protoreflect.StringKind}
 		isValidFieldType := slices.Includes(allowedKinds, field.Kind())
-		return strings.HasSuffix(name, "Code") && isValidFieldType
+		return isValidFieldType
 	}
+
 	return false
 }
 

@@ -7,8 +7,10 @@ import (
 	"regexp"
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
-	"github.com/google/uuid"
+
 	"github.com/verily-src/fhirpath-go/internal/slices"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -340,4 +342,13 @@ func UUID(value string) *dtpb.Uuid {
 // See: http://hl7.org/fhir/R4/datatypes.html#uuid
 func RandomUUID() *dtpb.Uuid {
 	return UUID(uuid.NewString())
+}
+
+// Xhtml creates an R4 FHIR XHTML element from a string value.
+//
+// See: https://hl7.org/fhir/R4/narrative.html#xhtml
+func Xhtml(value string) *dtpb.Xhtml {
+	return &dtpb.Xhtml{
+		Value: value,
+	}
 }

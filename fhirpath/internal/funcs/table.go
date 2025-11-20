@@ -406,7 +406,12 @@ var baseTable = FunctionTable{
 		0,
 		false,
 	},
-	"trace": notImplemented,
+	"trace": Function{
+		impl.Trace,
+		1,
+		2,
+		false,
+	},
 	"now": Function{
 		impl.Now,
 		0,

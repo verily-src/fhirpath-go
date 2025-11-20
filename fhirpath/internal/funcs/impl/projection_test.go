@@ -77,6 +77,12 @@ func TestSelect_Evaluates(t *testing.T) {
 			inputArgs:       []expr.Expression{&expr.FieldExpression{FieldName: "state"}},
 			wantCollection:  system.Collection{address[0].GetState()},
 		},
+		{
+			name:            "does not raise error if all fields are invalid but SkipUnknownFields is true",
+			inputCollection: system.Collection{address[0], fhir.String("string")},
+			inputArgs:       []expr.Expression{&expr.FieldExpression{FieldName: "foo", SkipUnknownFields: true}},
+			wantCollection:  system.Collection{},
+		},
 	}
 
 	for _, tc := range testCases {

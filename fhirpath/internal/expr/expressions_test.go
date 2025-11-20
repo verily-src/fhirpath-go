@@ -8,15 +8,12 @@ import (
 
 	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/codes_go_proto"
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
-	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
 	bcrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
-	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_go_proto"
+	dpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/device_go_proto"
 	epb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/encounter_go_proto"
 	mrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/medication_request_go_proto"
-	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/shopspring/decimal"
+
 	"github.com/verily-src/fhirpath-go/fhirpath"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr"
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/expr/exprtest"
@@ -27,6 +24,9 @@ import (
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"github.com/verily-src/fhirpath-go/internal/slices"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/shopspring/decimal"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -211,6 +211,12 @@ func TestFieldExpression_Gets_DesiredField(t *testing.T) {
 			wantCollection: system.Collection{patientBirthDay},
 		},
 		{
+			name:           "input item doesn't have field - skipped",
+			fieldExp:       &expr.FieldExpression{FieldName: "given", SkipUnknownFields: true},
+			input:          system.Collection{patientFirstHumanName, patientContactPoint[0]},
+			wantCollection: system.Collection{patientFirstHumanName.Given[0], patientFirstHumanName.Given[1]},
+		},
+		{
 			name:           "(Legacy) input contains non-resource items",
 			fieldExp:       &expr.FieldExpression{FieldName: "birthDate", Permissive: true},
 			input:          system.Collection{patientMissingName, "hello"},
@@ -252,15 +258,16 @@ func TestFieldExpression_Gets_DesiredField(t *testing.T) {
 
 func TestFieldExpression_ValidInput_GetsField(t *testing.T) {
 	tm := time.Now()
-	device1 := &device_go_proto.Device{
+	device1 := &dpb.Device{
 		Id: fhir.RandomID(),
 	}
-	patient1 := &patient_go_proto.Patient{
+	patient1 := &ppb.Patient{
 		Id: fhir.RandomID(),
 	}
-	entries := []*bundle_and_contained_resource_go_proto.Bundle_Entry{
+	entries := []*bcrpb.Bundle_Entry{
 		bundle.NewPostEntry(device1), bundle.NewPostEntry(patient1),
 	}
+
 	testCases := []struct {
 		name  string
 		input system.Collection

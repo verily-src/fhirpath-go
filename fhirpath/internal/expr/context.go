@@ -7,6 +7,7 @@ import (
 	"github.com/verily-src/fhirpath-go/fhirpath/resolver"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 	"github.com/verily-src/fhirpath-go/fhirpath/terminology"
+	"github.com/verily-src/fhirpath-go/fhirpath/trace"
 )
 
 // Context holds the global time and external constant
@@ -31,9 +32,20 @@ type Context struct {
 	// is used in the 'resolve()' FHIRPath function.
 	Resolver resolver.Resolver
 
+	// Permissive is a legacy option to allow FHIRpaths with *invalid* fields to be
+	// compiled (to reduce breakages).
+	Permissive bool
+
+	// SkipUnknownFields is an option that allows for skipping unknown fields and returning
+	// an empty collection instead of throwing an error.
+	SkipUnknownFields bool
+
 	// Service is an optional mechanism for providing a terminology service
 	// which can be used to validate code in valueSet
 	TermService terminology.Service
+
+	// Tracer is an optional mechanism for tracing FHIRPath evaluation
+	Tracer trace.Tracer
 
 	// GoContext is a context from the calling main function
 	GoContext context.Context
@@ -66,6 +78,8 @@ func (c *Context) Clone() *Context {
 		ExternalConstants: c.ExternalConstants,
 		LastResult:        c.LastResult,
 		Resolver:          c.Resolver,
+		Permissive:        c.Permissive,
+		SkipUnknownFields: c.SkipUnknownFields,
 		TermService:       c.TermService,
 		GoContext:         c.GoContext,
 	}
@@ -77,8 +91,10 @@ func InitializeContext(input system.Collection) *Context {
 	return &Context{
 		Now: time.Now().Local().UTC(),
 		ExternalConstants: map[string]any{
-			"context": input,
-			"ucum":    system.String("http://unitsofmeasure.org"),
+			"context":      input,
+			"rootResource": input,
+			"ucum":         system.String("http://unitsofmeasure.org"),
 		},
+		Tracer: trace.NoopTracer(),
 	}
 }
