@@ -35,12 +35,12 @@ func MemberOf(ctx *expr.Context, input system.Collection, args ...expr.Expressio
 		return nil, fmt.Errorf("empty argument content")
 	}
 
-	var valueSetId string
+	var valueSetID string
 	switch content[0].(type) {
 	case system.String:
-		valueSetId = string(content[0].(system.String))
+		valueSetID = string(content[0].(system.String))
 	case *dtpb.String:
-		valueSetId = content[0].(*dtpb.String).GetValue()
+		valueSetID = content[0].(*dtpb.String).GetValue()
 	default:
 		return nil, fmt.Errorf("unsupported argument type")
 	}
@@ -49,19 +49,20 @@ func MemberOf(ctx *expr.Context, input system.Collection, args ...expr.Expressio
 	for _, item := range input {
 		switch res := item.(type) {
 		case *dtpb.Coding:
-			result, err := validateCoding(ctx, res.GetCode().GetValue(), res.GetSystem().GetValue(), valueSetId)
+			result, err := validateCoding(ctx, res.GetCode().GetValue(), res.GetSystem().GetValue(), valueSetID)
 			if err != nil {
 				return system.Collection{system.Boolean(false)}, nil
 			}
-			validateResult = result
 
+			validateResult = result
 		case *dtpb.CodeableConcept:
 			// If it's a CodeableConcept, check the coding inside one by one
 			for _, coding := range res.GetCoding() {
-				result, err := validateCoding(ctx, coding.GetCode().GetValue(), coding.GetSystem().GetValue(), valueSetId)
+				result, err := validateCoding(ctx, coding.GetCode().GetValue(), coding.GetSystem().GetValue(), valueSetID)
 				if err != nil {
 					continue
 				}
+
 				if result {
 					validateResult = result
 					break

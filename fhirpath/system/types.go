@@ -6,10 +6,12 @@ import (
 	"fmt"
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
-	"github.com/shopspring/decimal"
+
 	"github.com/verily-src/fhirpath-go/internal/fhir"
 	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"github.com/verily-src/fhirpath-go/internal/protofields"
+
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -52,7 +54,7 @@ func IsPrimitive(input any) bool {
 	switch v := input.(type) {
 	case *dtpb.Boolean, *dtpb.String, *dtpb.Uri, *dtpb.Url, *dtpb.Canonical, *dtpb.Code, *dtpb.Oid, *dtpb.Id, *dtpb.Uuid, *dtpb.Markdown,
 		*dtpb.Base64Binary, *dtpb.Integer, *dtpb.UnsignedInt, *dtpb.PositiveInt, *dtpb.Decimal, *dtpb.Date,
-		*dtpb.Time, *dtpb.DateTime, *dtpb.Instant, *dtpb.Quantity, Any:
+		*dtpb.Time, *dtpb.DateTime, *dtpb.Instant, *dtpb.Quantity, *dtpb.Xhtml, Any:
 		return true
 	case fhir.Base:
 		return protofields.IsCodeField(v)
@@ -94,6 +96,8 @@ func From(input any) (Any, error) {
 		return Integer(v.Value), nil
 	case *dtpb.PositiveInt:
 		return Integer(v.Value), nil
+	case *dtpb.Xhtml:
+		return String(v.Value), nil
 	case *dtpb.Decimal:
 		value, err := decimal.NewFromString(v.Value)
 		if err != nil {

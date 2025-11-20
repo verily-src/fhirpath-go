@@ -6,13 +6,15 @@ import (
 	cpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/codes_go_proto"
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	r4pb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
-	"github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/observation_go_proto"
+	opb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/observation_go_proto"
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/verily-src/fhirpath-go/fhirpath/resolver"
 	"github.com/verily-src/fhirpath-go/internal/containedresource"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -38,7 +40,7 @@ func TestBundleResolver_Resolve(t *testing.T) {
 	obsAbsVersionedUrl := "https://healthcare.googleapis.com/v1/projects/123/locations/abc/datasets/def/fhirStores/ghi/fhir/Observation/123/_history/v1"
 	invalidVersionedAbsUrl := "https://healthcare.googleapis.com/v1/projects/123/locations/abc/datasets/def/fhirStores/ghi/fhir/Patient/123/_history/%#@^%$#"
 
-	obs123 := &observation_go_proto.Observation{
+	obs123 := &opb.Observation{
 		Id: &dtpb.Id{Value: "123"},
 		Subject: &dtpb.Reference{
 			Reference: &dtpb.Reference_PatientId{PatientId: &dtpb.ReferenceId{Value: "123"}},
@@ -56,7 +58,7 @@ func TestBundleResolver_Resolve(t *testing.T) {
 	patient123Latest := &ppb.Patient{
 		Id: fhir.ID("123"),
 		Meta: &dtpb.Meta{
-			LastUpdated: &dtpb.Instant{ValueUs: 500},
+			LastUpdated: &dtpb.Instant{ValueUs: 5000},
 		},
 	}
 

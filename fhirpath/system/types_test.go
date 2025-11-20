@@ -8,11 +8,13 @@ import (
 	mrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/medication_request_go_proto"
 	ppb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/patient_go_proto"
 	qpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/questionnaire_go_proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/shopspring/decimal"
+
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 	"github.com/verily-src/fhirpath-go/internal/element/canonical"
 	"github.com/verily-src/fhirpath-go/internal/fhir"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -95,6 +97,12 @@ var testCases []testCase = []testCase{
 		name:       "converts base64 binary",
 		input:      fhir.Base64Binary([]byte("hello world")),
 		want:       system.String("aGVsbG8gd29ybGQ="),
+		shouldCast: true,
+	},
+	{
+		name:       "converts xhtml",
+		input:      fhir.Xhtml("xhtml"),
+		want:       system.String("xhtml"),
 		shouldCast: true,
 	},
 	{

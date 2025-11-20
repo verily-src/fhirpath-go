@@ -7,8 +7,8 @@ import (
 
 	dtpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/datatypes_go_proto"
 	bcrpb "github.com/google/fhir/go/proto/google/fhir/proto/r4/core/resources/bundle_and_contained_resource_go_proto"
-	"github.com/iancoleman/strcase"
-	"github.com/shopspring/decimal"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/verily-src/fhirpath-go/fhirpath/internal/reflection"
 	"github.com/verily-src/fhirpath-go/fhirpath/system"
 	"github.com/verily-src/fhirpath-go/internal/containedresource"
@@ -16,7 +16,9 @@ import (
 	"github.com/verily-src/fhirpath-go/internal/fhirconv"
 	"github.com/verily-src/fhirpath-go/internal/protofields"
 	"github.com/verily-src/fhirpath-go/internal/slices"
-	"google.golang.org/protobuf/proto"
+
+	"github.com/iancoleman/strcase"
+	"github.com/shopspring/decimal"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -77,8 +79,9 @@ var _ Expression = (*IdentityExpression)(nil)
 // FieldExpression is the expression that accesses the specified
 // FieldName in the input collection.
 type FieldExpression struct {
-	FieldName  string
-	Permissive bool
+	FieldName         string
+	Permissive        bool
+	SkipUnknownFields bool
 }
 
 // Evaluate filters the input collections by those that contain
@@ -161,6 +164,10 @@ func (e *FieldExpression) Evaluate(ctx *Context, input system.Collection) (syste
 			fieldName = fieldName + "_value"
 			field = reflect.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
 			if field == nil {
+				if e.SkipUnknownFields {
+					continue
+				}
+
 				return nil, fmt.Errorf("%w: %s not a field on %T", ErrInvalidField, fieldName, message)
 			}
 		}
@@ -442,8 +449,10 @@ var _ Expression = (*EqualityExpression)(nil)
 // FunctionExpression enables evaluation of Function Invocation expressions.
 // It holds the function and function arguments.
 type FunctionExpression struct {
-	Fn   func(*Context, system.Collection, ...Expression) (system.Collection, error)
-	Args []Expression
+	Fn                func(*Context, system.Collection, ...Expression) (system.Collection, error)
+	Args              []Expression
+	Permissive        bool
+	SkipUnknownFields bool
 }
 
 // Evaluate evaluates the function with respect to its arguments. Returns the result

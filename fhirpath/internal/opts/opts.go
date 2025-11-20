@@ -23,6 +23,10 @@ type CompileConfig struct {
 	// Permissive is a legacy option to allow FHIRpaths with *invalid* fields to be
 	// compiled (to reduce breakages).
 	Permissive bool
+
+	// SkipUnknownFields is an option that allows for skipping unknown fields and returning
+	// an empty collection instead of throwing an error.
+	SkipUnknownFields bool
 }
 
 // EvaluateConfig provides the configuration values for the Evaluate command.

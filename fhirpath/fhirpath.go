@@ -47,8 +47,9 @@ func Compile(expr string, options ...CompileOption) (*Expression, error) {
 	}
 
 	visitor := &parser.FHIRPathVisitor{
-		Functions:  config.Table,
-		Permissive: config.Permissive,
+		Functions:         config.Table,
+		Permissive:        config.Permissive,
+		SkipUnknownFields: config.SkipUnknownFields,
 	}
 	vr, ok := visitor.Visit(tree).(*parser.VisitResult)
 	if !ok {
